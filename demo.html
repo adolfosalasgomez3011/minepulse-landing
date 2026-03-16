@@ -981,7 +981,7 @@ function startPitAnim() {
   canvas.height = ca.clientHeight;
   stopPitAnim();
   function frame() {
-    pitTime += 0.4;
+    pitTime += 0.12;
     if (pitMode === 'surface') drawOpenPit(canvas);
     else drawTunnel(canvas);
     pitAnimFrame = requestAnimationFrame(frame);
@@ -1137,7 +1137,7 @@ function drawOpenPit(canvas) {
   // Haul trucks spiraling up the haul road
   const trucks = eqAssets.filter(a=>a.type==='haul-truck'||a.type==='aux-truck'||a.type==='water-truck');
   trucks.forEach((a,i)=>{
-    const roadProgress = ((t*0.006+i*(1/Math.max(trucks.length,1)))%1);
+    const roadProgress = ((t*0.0018+i*(1/Math.max(trucks.length,1)))%1);
     const bench = roadProgress * benchCount;
     const bIdx = Math.floor(bench);
     const bFrac = bench - bIdx;
@@ -1168,7 +1168,7 @@ function drawOpenPit(canvas) {
     // Dust trail
     ctx.strokeStyle=col+'30'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(tx2,ty2);
-    const prevProg=((t*0.006+i/Math.max(trucks.length,1)-0.05+1)%1);
+    const prevProg=((t*0.0018+i/Math.max(trucks.length,1)-0.05+1)%1);
     const pBench=prevProg*benchCount;
     const pBIdx=Math.floor(pBench); const pFrac=pBench-pBIdx;
     const pBProg=pBIdx/benchCount; const pNextBProg=(pBIdx+1)/benchCount;
@@ -1326,7 +1326,7 @@ function drawTunnel(canvas) {
   // ── LHD / ORE CART moving ──
   const lhds=SITES[activeSite].assets.filter(a=>a.type==='loader'||a.type==='compressor'||a.type==='aux-truck');
   lhds.slice(0,2).forEach((a,i)=>{
-    const prog=((t*(i%2===0?.007:.006)+i*.5)%1);
+    const prog=((t*(i%2===0?.0022:.0018)+i*.5)%1);
     const vehX=vpX+(lx-vpX)*prog*(i%2===0?1:-1)+vpX*(i%2===0?0:0);
     // Actually animate left to right or right to left
     const realX=i%2===0?lx+(rx-lx)*(1-prog):rx-(rx-lx)*(1-prog);
