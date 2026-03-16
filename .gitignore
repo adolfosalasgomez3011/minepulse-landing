@@ -1,0 +1,19 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+*.code-workspace
+
+# Temp scripts used during build
+write_index.py
+write_css.py
+
+# Node (if ever added)
+node_modules/
+npm-debug.log*
+
+# Vercel
+.vercel/

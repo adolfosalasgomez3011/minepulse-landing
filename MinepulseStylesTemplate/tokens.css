@@ -1,0 +1,131 @@
+/* ═══════════════════════════════════════════════════════════
+   MinePulse — Style Tokens Reference
+   Place this file in MinepulseStylesTemplate for consultation
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+
+  /* ── COLOUR PALETTE ──────────────────────────────────────
+     Inspired by: tektelic.com dark-navy corporate tech style
+     Adapted for: GoalPraxis MinePulse, Peru mining industry
+  ─────────────────────────────────────────────────────────── */
+
+  /* Backgrounds */
+  --color-navy:         #0a1628;   /* Page background, hero, darkest */
+  --color-navy-mid:     #0f2040;   /* Section backgrounds */
+  --color-navy-light:   #162d55;   /* Cards on dark backgrounds */
+
+  /* Brand Blues – Primary action / tech trust */
+  --color-blue:         #1a6ed8;   /* Primary buttons, links, badges */
+  --color-blue-light:   #3d9bff;   /* Hover states, highlights */
+  --color-blue-glow:    rgba(26, 110, 216, 0.18); /* Backgrounds/shadows */
+
+  /* Mining Gold – Energy, value, Peru Inca heritage */
+  --color-gold:         #d4a017;   /* Primary CTA, accent, ROI numbers */
+  --color-gold-light:   #f0bf3a;   /* Hover states */
+  --color-gold-pale:    #fff3cc;   /* Light gold backgrounds */
+
+  /* Status / Semantic */
+  --color-teal:         #0eaeb8;   /* Protect / safety pillar */
+  --color-green:        #22c55e;   /* Active, success, positive ROI */
+  --color-red:          #ef4444;   /* Alert, danger, cost */
+  --color-orange:       #f97316;   /* Warning */
+
+  /* Neutral Slate */
+  --color-slate-900:    #1e293b;
+  --color-slate-700:    #334155;
+  --color-slate-500:    #64748b;
+  --color-slate-300:    #94a3b8;
+  --color-slate-100:    #f1f5f9;
+  --color-white:        #ffffff;
+
+  /* Text */
+  --color-text-dark:    #0f172a;
+  --color-text-mid:     #475569;
+  --color-text-light:   #94a3b8;
+
+  /* ── TYPOGRAPHY ─────────────────────────────────────────── */
+  --font-heading:  'Montserrat', 'Inter', system-ui, sans-serif;
+  --font-body:     'Inter', system-ui, sans-serif;
+
+  /* Heading weights: 700 (h3–h4) | 800 (h2) | 900 (h1, hero) */
+  /* Body weight: 400 regular | 500 medium | 600 semibold */
+
+  /* Scale */
+  --text-xs:    0.75rem;   /*  12px – tags, chips, notes */
+  --text-sm:    0.875rem;  /*  14px – feature lists, small labels */
+  --text-base:  1rem;      /*  16px – body copy */
+  --text-lg:    1.125rem;  /*  18px – lead paragraphs */
+  --text-xl:    1.25rem;   /*  20px – card headings */
+  --text-2xl:   1.5rem;    /*  24px – section sub-headings */
+  --text-3xl:   2rem;      /*  32px – section headings */
+  --text-4xl:   2.75rem;   /*  44px – page titles */
+  --text-hero:  clamp(2.8rem, 7vw, 5rem);
+
+  /* ── SPACING & LAYOUT ───────────────────────────────────── */
+  --nav-height:  72px;
+  --section-v:   96px;     /* Vertical padding per section */
+  --max-width:   1200px;
+
+  /* ── BORDERS & RADIUS ───────────────────────────────────── */
+  --radius-sm:   6px;
+  --radius-md:   12px;
+  --radius-lg:   20px;
+  --radius-xl:   32px;
+  --radius-full: 9999px;
+
+  /* ── SHADOWS ────────────────────────────────────────────── */
+  --shadow-sm:   0 2px 8px  rgba(10,22,40, 0.12);
+  --shadow-md:   0 8px 32px rgba(10,22,40, 0.18);
+  --shadow-lg:   0 20px 60px rgba(10,22,40, 0.28);
+  --shadow-glow: 0 0 40px   rgba(26,110,216, 0.25);
+  --shadow-gold: 0 0 30px   rgba(212,160,23, 0.40);
+
+  /* ── ANIMATION ──────────────────────────────────────────── */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration:     0.25s;
+  --transition:   all var(--duration) var(--ease-default);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLOUR USAGE GUIDE
+═══════════════════════════════════════════════════════════
+
+  BACKGROUNDS
+  ┌─────────────────────────────────────────────────────┐
+  │ Page / Hero:        --color-navy        (#0a1628)   │
+  │ Dark Sections:      --color-navy-mid    (#0f2040)   │
+  │ Light Sections:     --color-slate-100   (#f1f5f9)   │
+  │ Cards / White:      --color-white       (#ffffff)   │
+  └─────────────────────────────────────────────────────┘
+
+  BRAND HIERARCHY
+  ┌─────────────────────────────────────────────────────┐
+  │ Primary CTA:        GOLD    (#d4a017)               │
+  │ Secondary CTA:      BLUE    (#1a6ed8)               │
+  │ Locate Pillar:      BLUE    (#1a6ed8)               │
+  │ Optimize Pillar:    GOLD    (#d4a017)               │
+  │ Protect Pillar:     TEAL    (#0eaeb8)               │
+  │ Success / Active:   GREEN   (#22c55e)               │
+  │ Alert / Cost:       RED     (#ef4444)               │
+  └─────────────────────────────────────────────────────┘
+
+  TYPOGRAPHY ON DARK BG
+  ┌─────────────────────────────────────────────────────┐
+  │ Headings:           #ffffff (full white)            │
+  │ Body:               rgba(255,255,255,0.65)          │
+  │ Muted / Labels:     rgba(255,255,255,0.35)          │
+  │ Accent text:        --color-gold  or  --color-blue-light │
+  └─────────────────────────────────────────────────────┘
+
+  DESIGN PRINCIPLES (tektelic-inspired, MinePulse adapted)
+  • Dark, professional, trust-worthy — like an industrial control room
+  • Gold accents = mining heritage + value / ROI emphasis
+  • Blue = tech trust, connectivity, IoT data flows
+  • Grid overlays on dark backgrounds = network / data feel
+  • Clean whitespace on light sections for readability
+  • Rounded corners (md/lg) = modern, approachable
+  • Peruvian profile: subtle Andean mountain silhouettes in hero
+    images, gold as reference to Inca gold heritage
+
+═══════════════════════════════════════════════════════════ */
