@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MinePulse Live Demo — Control Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════ CSS TOKENS ═══════ */
+:root{
+  --navy:#0a1628;--navy-mid:#0d1c35;--navy-light:#162447;
+  --blue:#1a6ed8;--blue2:#4da3ff;--gold:#d4a017;--gold2:#f0c040;
+  --teal:#0eaeb8;--green:#22c55e;--red:#ef4444;--orange:#f97316;
+  --white:#fff;--text:#e2e8f0;--muted:#94a3b8;--border:rgba(255,255,255,0.08);
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Inter',sans-serif;--head:'Montserrat',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:13px}
+
+/* ═══════ APP SHELL ═══════ */
+.app{display:grid;grid-template-rows:52px 1fr;height:100vh;overflow:hidden}
+
+/* ─── TOP BAR ─── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  background:rgba(6,14,26,0.97);
+  border-bottom:1px solid rgba(212,160,23,0.3);
+  z-index:100;gap:8px;
+}
+.topbar-left{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar-logo{height:24px;object-fit:contain}
+.topbar-divider{width:1px;height:20px;background:var(--border)}
+.topbar-brand{font-family:var(--head);font-weight:900;font-size:.95rem;color:var(--white);white-space:nowrap}
+.topbar-brand span{color:var(--gold)}
+.topbar-tag{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);
+  color:var(--gold);padding:2px 8px;border-radius:100px;white-space:nowrap}
+.topbar-center{display:flex;align-items:center;gap:5px}
+.site-badge{
+  padding:4px 11px;border-radius:100px;font-size:.68rem;font-weight:700;
+  cursor:pointer;transition:.2s;border:1px solid var(--border);
+  color:var(--muted);background:transparent;white-space:nowrap;
+}
+.site-badge.active{background:var(--blue);border-color:var(--blue);color:var(--white)}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;color:var(--green);white-space:nowrap}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:blink 1.2s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.clock{font-family:var(--mono);font-size:.82rem;color:var(--gold);letter-spacing:.05em;white-space:nowrap}
+.alert-bell{position:relative;cursor:pointer;padding:4px;flex-shrink:0}
+.alert-bell svg{width:18px;height:18px;stroke:var(--muted)}
+.alert-count{
+  position:absolute;top:-2px;right:-2px;
+  background:var(--red);color:#fff;font-size:.55rem;font-weight:800;
+  width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center
+}
+.view-toggle{display:flex;gap:4px}
+.vbtn{
+  padding:4px 9px;border-radius:6px;font-size:.68rem;font-weight:700;cursor:pointer;
+  border:1px solid var(--border);color:var(--muted);background:transparent;transition:.2s;white-space:nowrap;
+}
+.vbtn.active{background:var(--navy-light);border-color:var(--blue);color:var(--white)}
+.back-link{
+  font-size:.68rem;color:var(--muted);text-decoration:none;
+  padding:4px 9px;border-radius:6px;border:1px solid var(--border);
+  transition:.2s;white-space:nowrap;
+}
+.back-link:hover{color:var(--white);border-color:rgba(255,255,255,.2)}
+
+/* ─── MAIN LAYOUT 3-COLUMN ─── */
+.main{display:grid;grid-template-columns:210px 1fr 255px;overflow:hidden;height:100%;position:relative}
+
+/* ─── LEFT PANEL ─── */
+.left-panel{
+  background:var(--navy-mid);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-header{
+  padding:8px 12px;font-size:.62rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between
+}
+.ph-count{
+  font-size:.62rem;font-weight:800;padding:1px 7px;border-radius:100px;
+  background:rgba(26,110,216,.2);color:var(--blue2)
+}
+.search-wrap{padding:6px 8px;border-bottom:1px solid var(--border)}
+.search-wrap input{
+  width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:6px;padding:5px 9px;color:var(--text);font-size:.75rem;
+  font-family:var(--sans);outline:none;transition:.2s
+}
+.search-wrap input:focus{border-color:var(--blue);background:rgba(26,110,216,.08)}
+.search-wrap input::placeholder{color:var(--muted)}
+.filter-tabs{display:flex;padding:5px 6px;gap:3px;border-bottom:1px solid var(--border)}
+.ftab{
+  flex:1;text-align:center;padding:4px 2px;border-radius:6px;font-size:.62rem;font-weight:700;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:.2s
+}
+.ftab.active{background:var(--navy-light);color:var(--white);border-color:var(--blue2)}
+.asset-list{flex:1;overflow-y:auto;padding:2px 0}
+.asset-list::-webkit-scrollbar{width:3px}
+.asset-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.asset-item{
+  display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;
+  border-left:3px solid transparent;transition:.15s;
+}
+.asset-item:hover{background:rgba(255,255,255,.04)}
+.asset-item.selected{background:rgba(26,110,216,.12);border-left-color:var(--blue)}
+.asset-item.alert-asset{border-left-color:var(--red)!important;animation:pulse-bg 2s ease infinite}
+@keyframes pulse-bg{0%,100%{background:rgba(239,68,68,.05)}50%{background:rgba(239,68,68,.12)}}
+.a-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-g{background:var(--green)}
+.dot-y{background:var(--gold)}
+.dot-r{background:var(--red)}
+.dot-m{background:var(--muted)}
+.dot-b{background:var(--blue2)}
+.a-info{flex:1;min-width:0}
+.a-name{font-weight:600;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-sub{font-size:.62rem;color:var(--muted)}
+.a-meta{text-align:right;font-size:.62rem;white-space:nowrap}
+.a-bat{color:var(--green)}
+.a-bat.lo{color:var(--red)}
+.a-bat.mid{color:var(--gold)}
+
+/* ─── MAP CENTER ─── */
+.map-area{position:relative;overflow:hidden;background:#05111d}
+.map-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 38% 52%, rgba(26,110,216,.04) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 65% 35%, rgba(14,174,184,.03) 0%, transparent 60%);
+}
+.grid-overlay{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(26,110,216,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,110,216,.06) 1px, transparent 1px);
+  background-size:46px 46px;
+}
+.zone{
+  position:absolute;border-radius:10px;border:2px dashed;pointer-events:none;
+  display:flex;align-items:flex-start;padding:5px 7px;
+}
+.zone-label{font-size:.52rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 5px;border-radius:3px}
+.zone-pit{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.04)}
+.zone-pit .zone-label{background:rgba(239,68,68,.2);color:var(--red)}
+.zone-workshop{border-color:rgba(26,110,216,.35);background:rgba(26,110,216,.04)}
+.zone-workshop .zone-label{background:rgba(26,110,216,.2);color:var(--blue2)}
+.zone-fuel{border-color:rgba(249,115,22,.35);background:rgba(249,115,22,.04)}
+.zone-fuel .zone-label{background:rgba(249,115,22,.2);color:var(--orange)}
+.zone-camp{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.04)}
+.zone-camp .zone-label{background:rgba(34,197,94,.2);color:var(--green)}
+/* Asset nodes */
+.map-asset{
+  position:absolute;transform:translate(-50%,-50%);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:left .8s ease, top .8s ease;z-index:5;
+}
+.map-asset:hover{z-index:50}
+.a-node{
+  position:relative;width:13px;height:13px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.25);transition:.2s;
+}
+.map-asset:hover .a-node{transform:scale(1.5)}
+.an-active{background:var(--green);box-shadow:0 0 7px rgba(34,197,94,.6)}
+.an-idle{background:var(--gold);box-shadow:0 0 5px rgba(212,160,23,.5)}
+.an-alert{background:var(--red);box-shadow:0 0 9px rgba(239,68,68,.7);animation:node-pulse 1s ease infinite}
+.an-worker{background:var(--blue2);box-shadow:0 0 6px rgba(77,163,255,.6);border-radius:3px;width:10px;height:10px}
+@keyframes node-pulse{0%,100%{box-shadow:0 0 9px rgba(239,68,68,.7)}50%{box-shadow:0 0 18px rgba(239,68,68,1)}}
+.a-node-lbl{
+  font-size:.5rem;font-weight:700;white-space:nowrap;
+  background:rgba(5,17,29,.92);border:1px solid rgba(255,255,255,.13);
+  padding:1px 4px;border-radius:3px;color:var(--text);pointer-events:none;
+}
+.ping-ring{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  border-radius:50%;border:1px solid var(--green);opacity:0;
+  animation:ping 2.5s ease-out infinite;pointer-events:none;
+}
+.ping-r-alert{border-color:var(--red)}
+@keyframes ping{0%{width:13px;height:13px;opacity:.8}100%{width:38px;height:38px;opacity:0}}
+/* LoRa tower */
+.lora-tower{
+  position:absolute;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  pointer-events:none;z-index:2;
+}
+.tower-ico{font-size:1.1rem;filter:drop-shadow(0 0 6px var(--teal))}
+.tower-ring{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  border-radius:50%;border:1px solid rgba(14,174,184,.18);
+  animation:tpulse 2.2s ease-out infinite;pointer-events:none;
+}
+@keyframes tpulse{0%{width:16px;height:16px;opacity:.7}100%{width:110px;height:110px;opacity:0}}
+.tower-lbl{font-size:.52rem;color:var(--teal);font-weight:700;white-space:nowrap}
+/* Map tooltip */
+.asset-tooltip{
+  position:absolute;z-index:200;
+  background:rgba(5,17,29,.97);border:1px solid rgba(26,110,216,.4);
+  border-radius:10px;padding:11px;min-width:170px;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);pointer-events:none;
+  transition:.15s;opacity:0;transform:translateY(4px);
+}
+.asset-tooltip.vis{opacity:1;transform:none}
+.tt-hd{display:flex;align-items:center;gap:7px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.tt-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tt-name{font-weight:800;font-size:.82rem}
+.tt-status{font-size:.62rem;color:var(--muted)}
+.tt-row{display:flex;justify-content:space-between;padding:2px 0;font-size:.7rem}
+.tt-lbl{color:var(--muted)}
+.tt-val{font-weight:600;font-family:var(--mono)}
+/* Map UI */
+.map-controls{position:absolute;bottom:44px;right:14px;display:flex;flex-direction:column;gap:3px;z-index:10}
+.map-btn{
+  width:26px;height:26px;border-radius:6px;
+  background:rgba(10,22,40,.9);border:1px solid var(--border);
+  color:var(--text);font-size:.9rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.map-btn:hover{background:var(--navy-light);border-color:var(--blue)}
+.map-scale{
+  position:absolute;bottom:44px;left:14px;
+  display:flex;align-items:center;gap:5px;
+  background:rgba(6,14,26,.8);padding:3px 7px;border-radius:5px;
+  font-size:.58rem;color:var(--muted);z-index:10
+}
+.scale-bar{width:36px;height:2px;background:repeating-linear-gradient(90deg,var(--white) 0 4px,transparent 4px 8px);border:1px solid var(--muted);border-radius:1px}
+/* Status bar */
+.status-bar{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(5,14,24,.96);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:3px 14px;font-size:.62rem;
+  color:var(--muted);z-index:20;
+}
+.sb-item{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.sb-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* ─── RIGHT PANEL ─── */
+.right-panel{
+  background:var(--navy-mid);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.rp-tabs{display:flex;border-bottom:1px solid var(--border)}
+.rp-tab{
+  flex:1;padding:9px 2px;text-align:center;font-size:.62rem;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;cursor:pointer;
+  color:var(--muted);border-bottom:2px solid transparent;transition:.2s;
+}
+.rp-tab.active{color:var(--white);border-bottom-color:var(--gold)}
+.rp-content{flex:1;overflow-y:auto;overflow-x:hidden}
+.rp-content::-webkit-scrollbar{width:3px}
+.rp-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1)}
+.rp-sec{padding:9px 11px;border-bottom:1px solid var(--border)}
+.rp-sec-title{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.kpi-card{
+  background:var(--navy);border:1px solid var(--border);border-radius:8px;
+  padding:9px 7px;text-align:center;
+}
+.kpi-card.kpi-alert{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.05)}
+.kpi-card.kpi-good{border-color:rgba(34,197,94,.2)}
+.kpi-val{font-family:var(--head);font-weight:900;font-size:1.25rem;color:var(--gold)}
+.kv-g{color:var(--green)}.kv-r{color:var(--red)}.kv-b{color:var(--blue2)}
+.kpi-lbl{font-size:.55rem;color:var(--muted);margin-top:2px}
+.kpi-trend{font-size:.58rem;margin-top:2px}
+.trend-up{color:var(--green)}.trend-dn{color:var(--red)}
+
+/* Alert feed */
+.alert-row{
+  display:flex;gap:7px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  align-items:flex-start;
+}
+.alert-dot-r{width:7px;height:7px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.alert-txt{flex:1}
+.alert-title-r{font-size:.7rem;font-weight:600;line-height:1.3}
+.alert-meta-r{font-size:.6rem;color:var(--muted);margin-top:1px}
+.alert-age{font-size:.58rem;color:var(--muted);white-space:nowrap}
+
+/* Bars */
+.eff-item{margin-bottom:7px}
+.eff-hdr{display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:3px}
+.eff-nm{color:var(--text)}
+.eff-pct{font-weight:700;font-family:var(--mono)}
+.eff-track{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.eff-fill{height:100%;border-radius:2px;width:0;transition:width 1.2s ease}
+
+/* Workers */
+.w-row{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.w-av{width:22px;height:22px;border-radius:50%;background:rgba(26,110,216,.3);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--blue2);flex-shrink:0}
+.w-nm{font-size:.7rem;font-weight:600;flex:1}
+.w-zone{font-size:.58rem;color:var(--muted)}
+.w-status{font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:100px;white-space:nowrap}
+.ws-ok{background:rgba(34,197,94,.15);color:var(--green)}
+.ws-al{background:rgba(239,68,68,.15);color:var(--red)}
+
+/* ─── DETAIL OVERLAY ─── */
+.detail-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(5,14,24,.93);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:.22s;
+}
+.detail-overlay.open{opacity:1;pointer-events:all}
+.detail-card{
+  background:var(--navy-mid);border:1px solid rgba(26,110,216,.3);
+  border-radius:14px;padding:24px;max-width:460px;width:92%;
+  box-shadow:0 24px 80px rgba(0,0,0,.8);
+}
+.dc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.dc-title{display:flex;align-items:center;gap:9px}
+.dc-name{font-family:var(--head);font-weight:900;font-size:1.2rem}
+.dc-close{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;color:var(--muted);transition:.2s;border:none}
+.dc-close:hover{background:rgba(255,255,255,.15);color:var(--white)}
+.dc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.dc-stat{background:var(--navy);border:1px solid var(--border);border-radius:9px;padding:11px;text-align:center}
+.dc-sv{font-family:var(--head);font-weight:900;font-size:1.15rem;color:var(--gold)}
+.dc-sv.g{color:var(--green)}.dc-sv.r{color:var(--red)}
+.dc-sl{font-size:.6rem;color:var(--muted);margin-top:3px}
+.dc-rows{margin-bottom:14px}
+.dc-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.8rem}
+.dc-rl{color:var(--muted)}.dc-rv{font-weight:600;font-family:var(--mono)}
+.dc-acts{display:flex;gap:7px}
+.dc-btn{flex:1;padding:8px;border-radius:7px;font-size:.72rem;font-weight:700;cursor:pointer;transition:.2s;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-family:var(--sans)}
+.dc-btn:hover{background:rgba(255,255,255,.1)}
+.dc-btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.dc-btn.pri:hover{background:#2278e8}
+.dc-btn.dng{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:var(--red)}
+
+/* ─── MOBILE VIEW ─── */
+.mobile-view{display:none;flex-direction:column;height:100%;overflow:hidden}
+.mobile-map{position:relative;overflow:hidden;flex:1;min-height:260px;background:#05111d}
+.mobile-bottom{background:var(--navy-mid);border-top:1px solid var(--border);display:flex;flex-direction:column;max-height:56%}
+.mob-tabs{display:flex;border-bottom:1px solid var(--border)}
+.mob-tab{flex:1;padding:9px 2px;text-align:center;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:.2s}
+.mob-tab.active{color:var(--white);border-bottom-color:var(--gold)}
+.mob-content{flex:1;overflow-y:auto;padding:10px 11px}
+.mob-content::-webkit-scrollbar{width:3px}
+/* SOS button */
+.sos-btn{
+  position:absolute;bottom:14px;right:14px;z-index:50;
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#ef4444,#c0392b);
+  border:3px solid rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  cursor:pointer;box-shadow:0 4px 20px rgba(239,68,68,.55);
+  animation:sos-glow 2s ease infinite;
+  font-size:.52rem;font-weight:800;color:#fff;letter-spacing:.05em;gap:1px;
+}
+@keyframes sos-glow{0%,100%{box-shadow:0 4px 20px rgba(239,68,68,.55)}50%{box-shadow:0 4px 30px rgba(239,68,68,1)}}
+
+/* ═══════ RESPONSIVE ═══════ */
+@media(max-width:768px){
+  .main{display:none}
+  .status-bar{display:none}
+  .mobile-view{display:flex}
+  .topbar-center{display:none}
+  .topbar-tag{display:none}
+  .back-link span{display:none}
+}
+@media(max-width:1024px) and (min-width:769px){
+  .main{grid-template-columns:175px 1fr 215px}
+}
+@media(max-width:1280px) and (min-width:1025px){
+  .main{grid-template-columns:195px 1fr 240px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ══════════ TOP BAR ══════════ -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="img/goalpraxis-logo.png" alt="GoalPraxis" class="topbar-logo" onerror="this.style.display='none'"/>
+      <div class="topbar-divider"></div>
+      <span class="topbar-brand">Mine<span>Pulse</span></span>
+      <span class="topbar-tag">Control Room</span>
+    </div>
+    <div class="topbar-center" id="siteBadges"></div>
+    <div class="topbar-right">
+      <div class="view-toggle">
+        <button class="vbtn active" id="btnDesktop" onclick="setView('desktop')">&#9783; Control Room</button>
+        <button class="vbtn" id="btnMobile" onclick="setView('mobile')">&#128241; Mine Phone</button>
+      </div>
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="alert-bell" onclick="openAlerts()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor"><path d="M15 17H9a6 6 0 01-6-6V9a9 9 0 0118 0v2a6 6 0 01-6 6zM13 21H11"/></svg>
+        <div class="alert-count" id="alertCount">3</div>
+      </div>
+      <a href="index.html" class="back-link">&#8592; <span>Back to MinePulse</span></a>
+    </div>
+  </div>
+
+  <!-- ══════════ DESKTOP / CONTROL ROOM ══════════ -->
+  <div class="main" id="desktopView">
+
+    <!-- LEFT: Asset list -->
+    <div class="left-panel">
+      <div class="filter-tabs">
+        <div class="ftab active" onclick="filterAssets('all',this)">All</div>
+        <div class="ftab" onclick="filterAssets('vehicles',this)">Fleet</div>
+        <div class="ftab" onclick="filterAssets('workers',this)">Workers</div>
+        <div class="ftab" onclick="filterAssets('alerts',this)">&#9888;</div>
+      </div>
+      <div class="panel-header">Assets <span class="ph-count" id="assetCountBadge">0</span></div>
+      <div class="search-wrap">
+        <input type="text" placeholder="&#128269; Search asset or zone…" id="searchInput" oninput="renderAssetList()"/>
+      </div>
+      <div class="asset-list" id="assetList"></div>
+    </div>
+
+    <!-- CENTER: Mine map -->
+    <div class="map-area" id="mapArea">
+      <div class="map-bg"></div>
+      <div class="grid-overlay"></div>
+
+      <!-- Zone overlays -->
+      <div class="zone zone-pit"      style="left:18%;top:12%;width:36%;height:42%"><span class="zone-label">Open Pit Zone A</span></div>
+      <div class="zone zone-workshop" style="left:63%;top:9%;width:23%;height:21%"><span class="zone-label">Workshop</span></div>
+      <div class="zone zone-fuel"     style="left:61%;top:59%;width:20%;height:17%"><span class="zone-label">Fuel Station</span></div>
+      <div class="zone zone-camp"     style="left:9%;top:68%;width:22%;height:19%"><span class="zone-label">Base Camp</span></div>
+
+      <!-- LoRa coverage tower -->
+      <div class="lora-tower" style="left:50%;top:48%">
+        <div class="tower-ring" style="animation-delay:0s"></div>
+        <div class="tower-ring" style="animation-delay:.7s"></div>
+        <div class="tower-ring" style="animation-delay:1.4s"></div>
+        <div class="tower-ico">&#128225;</div>
+        <div class="tower-lbl">LoRaWAN</div>
+      </div>
+
+      <!-- Asset dots injected by JS -->
+      <div id="mapNodes"></div>
+
+      <!-- Map tooltip -->
+      <div class="asset-tooltip" id="assetTooltip">
+        <div class="tt-hd">
+          <div class="tt-dot" id="ttDot"></div>
+          <div><div class="tt-name" id="ttName"></div><div class="tt-status" id="ttSt"></div></div>
+        </div>
+        <div id="ttRows"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="map-controls">
+        <button class="map-btn" title="Zoom in">+</button>
+        <button class="map-btn" title="Zoom out">−</button>
+        <button class="map-btn" title="Reset">&#8635;</button>
+        <button class="map-btn" title="Layers">&#9741;</button>
+      </div>
+      <div class="map-scale"><div class="scale-bar"></div>500 m</div>
+
+      <!-- Status bar (inside map) -->
+      <div class="status-bar">
+        <div class="sb-item"><div class="sb-dot" style="background:var(--green)"></div><span id="sbActive">0 Active</span></div>
+        <div class="sb-item"><div class="sb-dot" style="background:var(--gold)"></div><span id="sbIdle">0 Idle</span></div>
+        <div class="sb-item"><div class="sb-dot" style="background:var(--red)"></div><span id="sbAlert">0 Alerts</span></div>
+        <div class="sb-item"><div class="sb-dot" style="background:var(--blue2)"></div><span id="sbWorkers">0 Workers</span></div>
+        <span style="margin-left:auto;font-family:var(--mono)">Network: <span style="color:var(--teal)">OK 98%</span></span>
+        <span>Sync: <span id="sbSync" style="color:var(--muted)">0s</span></span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Data panel -->
+    <div class="right-panel">
+      <div class="rp-tabs">
+        <div class="rp-tab active" onclick="rpTab('locate',this)">&#128204; Locate</div>
+        <div class="rp-tab" onclick="rpTab('optimize',this)">&#9889; Optimize</div>
+        <div class="rp-tab" onclick="rpTab('protect',this)">&#128737; Protect</div>
+      </div>
+      <div class="rp-content" id="rpContent"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ MOBILE / PHONE VIEW ══════════ -->
+  <div class="mobile-view" id="mobileView">
+    <div class="mobile-map" id="mobileMapArea">
+      <div class="map-bg"></div>
+      <div class="grid-overlay"></div>
+      <div class="zone zone-pit" style="left:14%;top:9%;width:42%;height:44%"><span class="zone-label">Open Pit Zone A</span></div>
+      <div class="zone zone-camp" style="left:9%;top:67%;width:24%;height:20%"><span class="zone-label">Base Camp</span></div>
+      <div class="lora-tower" style="left:50%;top:48%">
+        <div class="tower-ring"></div>
+        <div class="tower-ring" style="animation-delay:.7s"></div>
+        <div class="tower-ico" style="font-size:.85rem">&#128225;</div>
+      </div>
+      <div id="mobileMapNodes"></div>
+      <!-- Worker SOS button -->
+      <div class="sos-btn" onclick="triggerSOS()">
+        <span style="font-size:1.1rem">&#128680;</span>SOS
+      </div>
+    </div>
+    <div class="mobile-bottom">
+      <div class="mob-tabs">
+        <div class="mob-tab active" onclick="mobileTab('locate',this)">&#128204; Locate</div>
+        <div class="mob-tab" onclick="mobileTab('optimize',this)">&#9889; Optimize</div>
+        <div class="mob-tab" onclick="mobileTab('protect',this)">&#128737; Protect</div>
+        <div class="mob-tab" onclick="mobileTab('alerts',this)">&#9888; Alerts</div>
+      </div>
+      <div class="mob-content" id="mobileContent"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ ASSET DETAIL OVERLAY ══════════ -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="detail-card" onclick="event.stopPropagation()">
+    <div class="dc-hdr">
+      <div class="dc-title">
+        <div class="a-dot" id="dcDot"></div>
+        <div class="dc-name" id="dcName">Asset</div>
+      </div>
+      <button class="dc-close" onclick="closeDetail()">&#10005;</button>
+    </div>
+    <div class="dc-stats" id="dcStats"></div>
+    <div class="dc-rows" id="dcRows"></div>
+    <div class="dc-acts" id="dcActs"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════
+// DATA
+// ════════════════════════════════════
+const SITES = ['Cerro Verde · Peru','Antapaccay · Peru','Las Bambas · Peru'];
+let activeSite = 0, activeFilter = 'all', activeRpTab = 'locate', activeMobTab = 'locate';
+
+const ASSETS = [
+  {id:'T-01',name:'CAT 793 #01',  type:'haul-truck',zone:'Pit A',    status:'active',spd:28,fuel:72,bat:95,lat:28,lng:24,hrs:6.2,loads:8},
+  {id:'T-02',name:'CAT 793 #02',  type:'haul-truck',zone:'Pit A',    status:'active',spd:31,fuel:58,bat:91,lat:38,lng:17,hrs:7.1,loads:9},
+  {id:'T-03',name:'CAT 793 #03',  type:'haul-truck',zone:'Pit A',    status:'idle',  spd:0, fuel:88,bat:97,lat:22,lng:43,hrs:2.1,loads:3},
+  {id:'D-01',name:'Komatsu D375', type:'dozer',     zone:'Pit A',    status:'active',spd:8, fuel:45,bat:88,lat:33,lng:34,hrs:9.3,loads:0},
+  {id:'D-02',name:'D375 #2',      type:'dozer',     zone:'Workshop', status:'idle',  spd:0, fuel:92,bat:100,lat:72,lng:16,hrs:0,loads:0},
+  {id:'E-01',name:'PC8000 Shovel',type:'excavator', zone:'Pit A',    status:'active',spd:2, fuel:63,bat:94,lat:26,lng:31,hrs:8.5,loads:0},
+  {id:'G-01',name:'Grader 16M',   type:'grader',    zone:'Pit A',    status:'alert', spd:0, fuel:12,bat:44,lat:42,lng:21,hrs:11.2,loads:0,alert:'Low fuel 12% — dispatch fuel truck'},
+  {id:'WL-01',name:'Wheel Loader',type:'loader',    zone:'Fuel Stn', status:'idle',  spd:0, fuel:95,bat:99,lat:68,lng:67,hrs:1.2,loads:0},
+  {id:'W-01',name:'J. Quispe',    type:'worker',    zone:'Pit A',    status:'active',spd:3, fuel:null,bat:88,lat:30,lng:27,hrs:4.2,loads:0},
+  {id:'W-02',name:'M. Flores',    type:'worker',    zone:'Base Camp',status:'active',spd:0, fuel:null,bat:72,lat:76,lng:16,hrs:4.2,loads:0},
+  {id:'W-03',name:'R. Mamani',    type:'worker',    zone:'Pit A',    status:'alert', spd:4, fuel:null,bat:15,lat:35,lng:25,hrs:5.1,loads:0,alert:'Battery 15% — needs charging'},
+  {id:'W-04',name:'C. Condori',   type:'worker',    zone:'Pit A',    status:'active',spd:2, fuel:null,bat:91,lat:24,lng:37,hrs:3.8,loads:0},
+];
+
+const ALERTS = [
+  {sev:'red',   title:'G-01 Grader — fuel CRITICAL (12%)',  zone:'Pit A',    time:'2m ago'},
+  {sev:'red',   title:'W-03 R. Mamani — tag battery low 15%',zone:'Pit A',   time:'5m ago'},
+  {sev:'orange',title:'T-02 approaching geofence boundary', zone:'Pit A',    time:'8m ago'},
+  {sev:'gold',  title:'D-01 — maintenance window in 2h',    zone:'Pit A',    time:'12m ago'},
+  {sev:'blue2', title:'T-03 idle >20 min — utilization loss',zone:'Pit A',   time:'25m ago'},
+  {sev:'blue2', title:'E-01 heartbeat confirmed',           zone:'Network',  time:'31m ago'},
+  {sev:'gold',  title:'Fuel truck dispatched to Pit A',     zone:'Dispatch', time:'48m ago'},
+];
+
+// Dot / node classes by status
+function dotClass(a){return a.status==='active'?'dot-g':a.status==='alert'?'dot-r':a.type==='worker'?'dot-b':'dot-y'}
+function nodeClass(a){
+  if(a.status==='alert') return 'an-alert';
+  if(a.type==='worker')  return 'an-worker';
+  if(a.status==='active')return 'an-active';
+  return 'an-idle';
+}
+function statusColor(a){return a.status==='active'?'var(--green)':a.status==='alert'?'var(--red)':'var(--gold)'}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  buildSiteBadges();
+  renderAssetList();
+  renderMapNodes('mapNodes');
+  renderMapNodes('mobileMapNodes');
+  renderRpContent();
+  renderMobContent();
+  startClock();
+  startSim();
+});
+
+// ════════════════════════════════════
+// SITE BADGES
+// ════════════════════════════════════
+function buildSiteBadges(){
+  const c=document.getElementById('siteBadges');
+  SITES.forEach((s,i)=>{
+    const b=document.createElement('div');
+    b.className='site-badge'+(i===0?' active':'');
+    b.textContent=s;
+    b.onclick=()=>{activeSite=i;document.querySelectorAll('.site-badge').forEach((el,j)=>el.classList.toggle('active',j===i))};
+    c.appendChild(b);
+  });
+}
+
+// ════════════════════════════════════
+// ASSET LIST (left panel)
+// ════════════════════════════════════
+function renderAssetList(){
+  const list=document.getElementById('assetList');
+  if(!list) return;
+  const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  let items=ASSETS.filter(a=>{
+    if(activeFilter==='vehicles') return a.type!=='worker';
+    if(activeFilter==='workers')  return a.type==='worker';
+    if(activeFilter==='alerts')   return a.status==='alert';
+    return true;
+  }).filter(a=>!q||a.name.toLowerCase().includes(q)||a.zone.toLowerCase().includes(q)||a.id.toLowerCase().includes(q));
+
+  document.getElementById('assetCountBadge').textContent=items.length;
+  list.innerHTML='';
+  items.forEach(a=>{
+    const bc=a.bat<20?'lo':a.bat<50?'mid':'';
+    const div=document.createElement('div');
+    div.className='asset-item'+(a.status==='alert'?' alert-asset':'');
+    div.innerHTML=`
+      <div class="a-dot ${dotClass(a)}"></div>
+      <div class="a-info">
+        <div class="a-name">${a.name}</div>
+        <div class="a-sub">${a.zone} · ${a.id}</div>
+      </div>
+      <div class="a-meta">
+        ${a.fuel!==null?`<div class="a-bat ${a.fuel<20?'lo':a.fuel<50?'mid':''}">\u25B3${Math.round(a.fuel)}%</div>`:''}
+        <div class="a-bat ${bc}">\u25A0${a.bat}%</div>
+        <div style="color:var(--muted)">${a.spd>0?a.spd+'km/h':'Idle'}</div>
+      </div>`;
+    div.onclick=()=>openDetail(a.id);
+    list.appendChild(div);
+  });
+
+  // status bar counts
+  const ac=ASSETS.filter(x=>x.type!=='worker'&&x.status==='active').length;
+  const ic=ASSETS.filter(x=>x.type!=='worker'&&x.status==='idle').length;
+  const alc=ASSETS.filter(x=>x.status==='alert').length;
+  const wc=ASSETS.filter(x=>x.type==='worker').length;
+  document.getElementById('sbActive').textContent=ac+' Active';
+  document.getElementById('sbIdle').textContent=ic+' Idle';
+  document.getElementById('sbAlert').textContent=alc+' Alerts';
+  document.getElementById('sbWorkers').textContent=wc+' Workers';
+  document.getElementById('alertCount').textContent=alc;
+}
+
+function filterAssets(f,el){
+  activeFilter=f;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderAssetList();
+}
+
+// ════════════════════════════════════
+// MAP NODES
+// ════════════════════════════════════
+function renderMapNodes(containerId){
+  const c=document.getElementById(containerId);
+  if(!c) return;
+  // preserve existing nodes and just update positions + rebuild if needed
+  const existing={};
+  c.querySelectorAll('.map-asset[data-id]').forEach(el=>existing[el.dataset.id]=el);
+
+  ASSETS.forEach(a=>{
+    if(existing[a.id]){
+      // update position smoothly (CSS transition handles animation)
+      existing[a.id].style.left=a.lng+'%';
+      existing[a.id].style.top=a.lat+'%';
+    } else {
+      const div=document.createElement('div');
+      div.className='map-asset';
+      div.dataset.id=a.id;
+      div.style.left=a.lng+'%';
+      div.style.top=a.lat+'%';
+      const isAlert=a.status==='alert';
+      div.innerHTML=`
+        <div class="a-node ${nodeClass(a)}">
+          <div class="ping-ring ${isAlert?'ping-r-alert':''}"></div>
+        </div>
+        <div class="a-node-lbl">${a.id}</div>`;
+      div.onmouseenter=(e)=>showTooltip(a,e,containerId);
+      div.onmouseleave=hideTooltip;
+      div.onclick=()=>openDetail(a.id);
+      c.appendChild(div);
+    }
+  });
+}
+
+// ════════════════════════════════════
+// TOOLTIP
+// ════════════════════════════════════
+function showTooltip(a,e,containerId){
+  const tt=document.getElementById('assetTooltip');
+  if(!tt) return;
+  const mapEl=document.getElementById(containerId==='mobileMapNodes'?'mobileMapArea':'mapArea');
+  if(!mapEl) return;
+  const r=mapEl.getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  document.getElementById('ttDot').style.background=statusColor(a);
+  document.getElementById('ttName').textContent=a.name;
+  document.getElementById('ttSt').textContent=a.status.toUpperCase()+' · '+a.zone;
+  document.getElementById('ttRows').innerHTML=`
+    <div class="tt-row"><span class="tt-lbl">Speed</span><span class="tt-val">${a.spd} km/h</span></div>
+    ${a.fuel!==null?`<div class="tt-row"><span class="tt-lbl">Fuel</span><span class="tt-val">${Math.round(a.fuel)}%</span></div>`:''}
+    <div class="tt-row"><span class="tt-lbl">Battery</span><span class="tt-val">${a.bat}%</span></div>
+    <div class="tt-row"><span class="tt-lbl">Op. Hours</span><span class="tt-val">${a.hrs}h</span></div>
+    ${a.alert?`<div class="tt-row" style="color:var(--red)"><span>\u26A0 ${a.alert}</span></div>`:''}`;
+  // Keep tooltip inside viewport
+  let left=x+16, top=Math.max(6,y-36);
+  const ttW=180;
+  if(left+ttW>r.width) left=x-ttW-8;
+  tt.style.left=left+'px';
+  tt.style.top=top+'px';
+  tt.classList.add('vis');
+}
+function hideTooltip(){document.getElementById('assetTooltip')?.classList.remove('vis')}
+
+// ════════════════════════════════════
+// RIGHT PANEL
+// ════════════════════════════════════
+function rpTab(tab,el){
+  activeRpTab=tab;
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderRpContent();
+}
+function renderRpContent(){
+  const c=document.getElementById('rpContent');
+  if(!c) return;
+  c.innerHTML=getRpHTML(activeRpTab);
+  triggerBars(c);
+}
+
+function getRpHTML(tab){
+  const alive=ASSETS.filter(a=>a.status==='active').length;
+  const idle =ASSETS.filter(a=>a.status==='idle').length;
+  const alc  =ASSETS.filter(a=>a.status==='alert').length;
+  const wc   =ASSETS.filter(a=>a.type==='worker').length;
+
+  if(tab==='locate') return `
+    <div class="rp-sec">
+      <div class="rp-sec-title">Fleet Overview</div>
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-good"><div class="kpi-val kv-g">${alive}</div><div class="kpi-lbl">Active</div><div class="kpi-trend trend-up">&#9650; 2 vs yesterday</div></div>
+        <div class="kpi-card"><div class="kpi-val">${idle}</div><div class="kpi-lbl">Idle</div><div class="kpi-trend trend-dn">&#9660; 1 less</div></div>
+        <div class="kpi-card kpi-alert"><div class="kpi-val kv-r">${alc}</div><div class="kpi-lbl">Alerts</div></div>
+        <div class="kpi-card"><div class="kpi-val kv-b">${wc}</div><div class="kpi-lbl">Workers</div></div>
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-sec-title">Zone Distribution</div>
+      ${['Pit A','Workshop','Fuel Stn','Base Camp'].map(z=>{
+        const n=ASSETS.filter(a=>a.zone===z).length;
+        const p=Math.round(n/ASSETS.length*100);
+        return `<div class="eff-item">
+          <div class="eff-hdr"><span class="eff-nm">${z}</span><span class="eff-pct">${n} assets</span></div>
+          <div class="eff-track"><div class="eff-fill" style="background:var(--blue2)" data-w="${p}"></div></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="rp-sec">
+      <div class="rp-sec-title">Workers On-Site</div>
+      ${ASSETS.filter(a=>a.type==='worker').map(w=>`
+        <div class="w-row">
+          <div class="w-av">${w.name.split(' ').map(s=>s[0]).join('')}</div>
+          <div style="flex:1"><div class="w-nm">${w.name}</div><div class="w-zone">${w.zone}</div></div>
+          <div class="w-status ${w.status==='alert'?'ws-al':'ws-ok'}">${w.status==='alert'?'&#9888; ALERT':'ON SHIFT'}</div>
+        </div>`).join('')}
+    </div>`;
+
+  if(tab==='optimize') return `
+    <div class="rp-sec">
+      <div class="rp-sec-title">Fleet Efficiency — Live</div>
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-good"><div class="kpi-val kv-g" id="kpiUtil">78%</div><div class="kpi-lbl">Utilization</div><div class="kpi-trend trend-up">&#9650; +4% vs week</div></div>
+        <div class="kpi-card"><div class="kpi-val" id="kpiLoads">14.2</div><div class="kpi-lbl">Loads/Day</div><div class="kpi-trend trend-up">&#9650; +1.1</div></div>
+        <div class="kpi-card"><div class="kpi-val kv-b">3.4h</div><div class="kpi-lbl">Avg Cycle</div><div class="kpi-trend trend-up">&#9650; 0.2h saved</div></div>
+        <div class="kpi-card kpi-alert"><div class="kpi-val kv-r">$4,200</div><div class="kpi-lbl">Idle Cost/Day</div></div>
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-sec-title">Asset Utilization</div>
+      ${ASSETS.filter(a=>a.type!=='worker').slice(0,6).map(a=>{
+        const p=a.status==='active'?Math.round(62+Math.random()*30):Math.round(8+Math.random()*28);
+        const col=p>70?'var(--green)':p>40?'var(--gold)':'var(--red)';
+        return `<div class="eff-item">
+          <div class="eff-hdr"><span class="eff-nm">${a.name}</span><span class="eff-pct" style="color:${col}">${p}%</span></div>
+          <div class="eff-track"><div class="eff-fill" style="background:${col}" data-w="${p}"></div></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="rp-sec">
+      <div class="rp-sec-title">Fuel Summary Today</div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-val">2,840L</div><div class="kpi-lbl">Consumed</div></div>
+        <div class="kpi-card kpi-good"><div class="kpi-val kv-g">-8%</div><div class="kpi-lbl">vs Last Week</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:.68rem;color:var(--muted);line-height:1.8">
+        &#9889; Route opt. saved <span style="color:var(--green);font-weight:700">220 L</span> today<br>
+        &#128663; G-01 Grader critical — fuel truck dispatched
+      </div>
+    </div>`;
+
+  if(tab==='protect') return `
+    <div class="rp-sec">
+      <div class="rp-sec-title">Safety Dashboard</div>
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-good"><div class="kpi-val kv-g">4</div><div class="kpi-lbl">Workers Safe</div></div>
+        <div class="kpi-card kpi-alert"><div class="kpi-val kv-r">1</div><div class="kpi-lbl">Low Battery &#9888;</div></div>
+        <div class="kpi-card"><div class="kpi-val">0</div><div class="kpi-lbl">SOS Events</div><div class="kpi-trend trend-up">All clear</div></div>
+        <div class="kpi-card kpi-good"><div class="kpi-val kv-g">12d</div><div class="kpi-lbl">Incident-Free</div></div>
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-sec-title">Active Alerts</div>
+      <div id="alertFeedRp">
+        ${ALERTS.slice(0,5).map(a=>`
+          <div class="alert-row">
+            <div class="alert-dot-r" style="background:var(--${a.sev})"></div>
+            <div class="alert-txt"><div class="alert-title-r">${a.title}</div><div class="alert-meta-r">${a.zone}</div></div>
+            <div class="alert-age">${a.time}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-sec-title">Geofence Status</div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-val kv-b">3</div><div class="kpi-lbl">Zone Entries</div></div>
+        <div class="kpi-card kpi-alert"><div class="kpi-val kv-r">1</div><div class="kpi-lbl">Breach</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:.68rem;line-height:1.8;color:var(--muted)">
+        &#128204; Workers within assigned zones<br>
+        &#128737; Blast zone clearance: <span style="color:var(--green);font-weight:700">CONFIRMED</span><br>
+        &#128680; Muster point: <span style="color:var(--blue2)">Base Camp</span>
+      </div>
+    </div>`;
+  return '';
+}
+
+function triggerBars(root){
+  setTimeout(()=>(root||document).querySelectorAll('.eff-fill[data-w]').forEach(el=>{el.style.width=el.dataset.w+'%'}),60);
+}
+
+// ════════════════════════════════════
+// MOBILE CONTENT
+// ════════════════════════════════════
+function mobileTab(tab,el){
+  activeMobTab=tab;
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderMobContent();
+}
+function renderMobContent(){
+  const c=document.getElementById('mobileContent');
+  if(!c) return;
+  if(activeMobTab==='locate'){
+    c.innerHTML=`
+      <div style="font-size:.68rem;color:var(--muted);margin-bottom:7px">Tap asset for details</div>
+      ${ASSETS.slice(0,7).map(a=>`
+        <div class="asset-item" onclick="openDetail('${a.id}')" style="border-radius:7px;margin-bottom:3px;background:var(--navy);border:1px solid var(--border)">
+          <div class="a-dot ${dotClass(a)}"></div>
+          <div class="a-info"><div class="a-name">${a.name}</div><div class="a-sub">${a.zone}</div></div>
+          <div class="a-meta"><div style="color:var(--muted)">${a.spd>0?a.spd+'km/h':'Idle'}</div></div>
+        </div>`).join('')}`;
+  } else if(activeMobTab==='optimize'){
+    c.innerHTML=`
+      <div class="kpi-grid" style="margin-bottom:9px">
+        <div class="kpi-card kpi-good"><div class="kpi-val kv-g">78%</div><div class="kpi-lbl">Utilization</div></div>
+        <div class="kpi-card"><div class="kpi-val">14.2</div><div class="kpi-lbl">Loads Today</div></div>
+      </div>
+      <div class="eff-item"><div class="eff-hdr"><span class="eff-nm">Fleet Utilization</span><span class="eff-pct">78%</span></div>
+        <div class="eff-track"><div class="eff-fill" data-w="78" style="background:var(--green)"></div></div></div>
+      <div class="eff-item"><div class="eff-hdr"><span class="eff-nm">Fuel Efficiency</span><span class="eff-pct">82%</span></div>
+        <div class="eff-track"><div class="eff-fill" data-w="82" style="background:var(--blue2)"></div></div></div>
+      <div style="margin-top:7px;font-size:.7rem;color:var(--muted)">&#9889; Route opt. saved 220L today</div>`;
+    triggerBars(c);
+  } else if(activeMobTab==='protect'){
+    c.innerHTML=`
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px;text-align:center;margin-bottom:9px">
+        <div style="font-family:var(--head);font-weight:900;font-size:1.3rem;color:var(--green)">ALL CLEAR</div>
+        <div style="font-size:.62rem;color:var(--muted)">12 days incident-free · 4 workers on shift</div>
+      </div>
+      ${ALERTS.slice(0,4).map(a=>`
+        <div class="alert-row">
+          <div class="alert-dot-r" style="background:var(--${a.sev})"></div>
+          <div class="alert-txt"><div class="alert-title-r">${a.title}</div></div>
+          <div class="alert-age">${a.time}</div>
+        </div>`).join('')}`;
+  } else if(activeMobTab==='alerts'){
+    c.innerHTML=ALERTS.map(a=>`
+      <div class="alert-row">
+        <div class="alert-dot-r" style="background:var(--${a.sev})"></div>
+        <div class="alert-txt">
+          <div class="alert-title-r">${a.title}</div>
+          <div class="alert-meta-r">${a.zone} · ${a.time}</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ════════════════════════════════════
+// ASSET DETAIL POPUP
+// ════════════════════════════════════
+function openDetail(id){
+  const a=ASSETS.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('dcDot').style.background=statusColor(a);
+  document.getElementById('dcName').textContent=a.name;
+  document.getElementById('dcStats').innerHTML=`
+    <div class="dc-stat"><div class="dc-sv ${a.status==='active'?'g':a.status==='alert'?'r':''}">${a.status.toUpperCase()}</div><div class="dc-sl">Status</div></div>
+    <div class="dc-stat"><div class="dc-sv">${a.spd}<span style="font-size:.75rem"> km/h</span></div><div class="dc-sl">Speed</div></div>
+    <div class="dc-stat"><div class="dc-sv ${a.bat<20?'r':''}">${a.bat}%</div><div class="dc-sl">Battery</div></div>`;
+  document.getElementById('dcRows').innerHTML=`
+    <div class="dc-row"><span class="dc-rl">Zone</span><span class="dc-rv">${a.zone}</span></div>
+    <div class="dc-row"><span class="dc-rl">Type</span><span class="dc-rv">${a.type}</span></div>
+    ${a.fuel!==null?`<div class="dc-row"><span class="dc-rl">Fuel Level</span><span class="dc-rv" ${a.fuel<20?'style="color:var(--red)"':''}>${Math.round(a.fuel)}%</span></div>`:''}
+    <div class="dc-row"><span class="dc-rl">Op. Hours Today</span><span class="dc-rv">${a.hrs}h</span></div>
+    ${a.loads>0?`<div class="dc-row"><span class="dc-rl">Loads Completed</span><span class="dc-rv">${a.loads}</span></div>`:''}
+    ${a.alert?`<div class="dc-row" style="color:var(--red);margin-top:4px"><span style="display:flex;align-items:center;gap:4px"><span>&#9888;</span><span>${a.alert}</span></span></div>`:''}`;
+  document.getElementById('dcActs').innerHTML=`
+    <button class="dc-btn pri" onclick="closeDetail()">&#128204; Track on Map</button>
+    ${a.status==='alert'?`<button class="dc-btn dng" onclick="closeDetail()">&#128680; Dispatch</button>`:`<button class="dc-btn" onclick="closeDetail()">&#128233; Message</button>`}
+    <button class="dc-btn" onclick="closeDetail()">&#128196; History</button>`;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function closeDetail(e){
+  if(!e||e.target===document.getElementById('detailOverlay'))
+    document.getElementById('detailOverlay').classList.remove('open');
+}
+function openAlerts(){
+  const tabs=document.querySelectorAll('.rp-tab');
+  if(tabs[2]) rpTab('protect',tabs[2]);
+}
+
+// ════════════════════════════════════
+// SOS (mobile workers)
+// ════════════════════════════════════
+function triggerSOS(){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(239,68,68,.13);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=`<div style="background:#0a1628;border:2px solid var(--red);border-radius:16px;padding:32px 36px;text-align:center;max-width:300px;box-shadow:0 20px 60px rgba(239,68,68,.4)">
+    <div style="font-size:2.8rem;margin-bottom:10px">&#128680;</div>
+    <div style="font-family:var(--head);font-weight:900;font-size:1.6rem;color:var(--red);margin-bottom:10px">SOS SENT</div>
+    <div style="color:var(--muted);font-size:.85rem;line-height:1.7">Emergency signal broadcast to control room.<br>Your GPS location has been shared.<br><br><strong style="color:var(--white)">Stay in place — help dispatched.</strong></div>
+    <button onclick="this.closest('div[style]').remove()" style="margin-top:22px;padding:11px 28px;border-radius:9px;background:var(--red);color:#fff;font-size:.85rem;font-weight:700;border:none;cursor:pointer;font-family:var(--sans);letter-spacing:.03em">
+      &#128077; Acknowledged
+    </button>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+// ════════════════════════════════════
+// VIEW TOGGLE (Control Room vs Phone)
+// ════════════════════════════════════
+function setView(v){
+  const desk=v==='desktop';
+  document.getElementById('desktopView').style.display=desk?'grid':'none';
+  document.getElementById('mobileView').style.display=desk?'none':'flex';
+  document.getElementById('btnDesktop').classList.toggle('active',desk);
+  document.getElementById('btnMobile').classList.toggle('active',!desk);
+  if(!desk){renderMobContent();renderMapNodes('mobileMapNodes');}
+}
+
+// ════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════
+function startClock(){
+  function tick(){
+    const n=new Date();
+    document.getElementById('clock').textContent=n.toLocaleTimeString('en-GB',{hour12:false});
+    document.getElementById('sbSync').textContent=(n.getSeconds()%30)+'s ago';
+  }
+  tick(); setInterval(tick,1000);
+}
+
+// ════════════════════════════════════
+// LIVE SIMULATION
+// ════════════════════════════════════
+let simAlertTimer=0;
+function startSim(){
+  setInterval(()=>{
+    // Move active assets
+    ASSETS.forEach(a=>{
+      if(a.status==='active'){
+        a.lng=Math.max(14,Math.min(86,a.lng+(Math.random()-.5)*2.2));
+        a.lat=Math.max(10,Math.min(84,a.lat+(Math.random()-.5)*2.2));
+        a.spd=Math.max(0,Math.min(55,a.spd+(Math.random()-.5)*7));
+        if(a.fuel!==null) a.fuel=Math.max(0,a.fuel-Math.random()*.12);
+        a.bat=Math.max(0,a.bat-Math.random()*.04);
+      }
+    });
+
+    // Occasionally generate a new live alert (protect tab)
+    simAlertTimer++;
+    if(simAlertTimer%4===0){
+      const newAlerts=[
+        {sev:'gold',title:'T-01 approaching zone boundary',zone:'Pit A',time:'now'},
+        {sev:'blue2',title:'Network packet loss 2% — monitoring',zone:'Network',time:'now'},
+        {sev:'orange',title:'D-01 high engine temp warning',zone:'Pit A',time:'now'},
+        {sev:'gold',title:'Scheduled shift change in 30 min',zone:'Base Camp',time:'now'},
+      ];
+      const pick=newAlerts[Math.floor(Math.random()*newAlerts.length)];
+      pick.time='just now';
+      ALERTS.unshift(pick);
+      if(ALERTS.length>20) ALERTS.pop();
+    }
+
+    renderMapNodes('mapNodes');
+    renderAssetList();
+    if(activeRpTab) renderRpContent();
+
+    const mv=document.getElementById('mobileView');
+    if(mv&&mv.style.display!=='none'){renderMapNodes('mobileMapNodes');renderMobContent();}
+
+  },2800);
+}
+</script>
+</body>
+</html>
