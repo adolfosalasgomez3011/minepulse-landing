@@ -508,9 +508,12 @@ const TYPE_ICON = {
   'light-plant':'💡','compressor':'🔧','aux-truck':'🚐','water-truck':'🚒',
   'fuel-truck':'⛽','welding-unit':'🔩','gen-set':'⚡','man-basket':'🪣',
   'haul-truck':'🚛','excavator':'⛏️','shovel':'⛏️','dozer':'🏗️',
-  'drill':'🔩','loader':'🏗️','grader':'🚧','support':'🔧',
+  'drill':'🔩','drill-rig':'🔩','loader':'🚜','lhd':'🚜','grader':'🚧','support':'🔧',
   'worker-m':'👷','worker-f':'👷‍♀️'
 };
+
+// Production fleet types (for Optimize mode)
+const PROD_TYPES = new Set(['haul-truck','excavator','shovel','loader','dozer','drill-rig','lhd']);
 
 const SITES = [
   {
@@ -528,6 +531,13 @@ const SITES = [
       {id:'FT-01',name:'Fuel Truck',type:'fuel-truck',status:'idle',spd:0,fuel:95,bat:97,lat:-22.304,lng:-68.901,hrs:1.2,loads:0},
       {id:'GS-01',name:'Gen-Set A',type:'gen-set',status:'active',spd:0,fuel:58,bat:99,lat:-22.296,lng:-68.903,hrs:12.0,loads:0},
       {id:'WE-01',name:'Welding Unit',type:'welding-unit',status:'idle',spd:0,fuel:null,bat:76,lat:-22.302,lng:-68.897,hrs:3.0,loads:0},
+      // Production fleet — Open Pit
+      {id:'HT-01',name:'Haul Truck 01',type:'haul-truck',status:'active',spd:29,fuel:74,bat:90,lat:-22.297,lng:-68.904,hrs:6.5,loads:8},
+      {id:'HT-02',name:'Haul Truck 02',type:'haul-truck',status:'active',spd:33,fuel:55,bat:85,lat:-22.301,lng:-68.900,hrs:7.2,loads:10},
+      {id:'HT-03',name:'Haul Truck 03',type:'haul-truck',status:'idle',spd:0,fuel:82,bat:92,lat:-22.295,lng:-68.896,hrs:4.0,loads:5},
+      {id:'SH-01',name:'Shovel 01',type:'excavator',status:'active',spd:0,fuel:68,bat:88,lat:-22.300,lng:-68.903,hrs:10.0,loads:0},
+      {id:'SH-02',name:'Shovel 02',type:'shovel',status:'active',spd:0,fuel:77,bat:94,lat:-22.303,lng:-68.898,hrs:9.5,loads:0},
+      {id:'DZ-01',name:'Dozer 01',type:'dozer',status:'idle',spd:0,fuel:88,bat:96,lat:-22.298,lng:-68.902,hrs:3.0,loads:0},
     ],
     people:[
       {id:'P-01',name:'Carlos M.',gender:'m',status:'ok',zone:'Control Room',lat:-22.297,lng:-68.902,role:'Supervisor',bat:88},
@@ -551,6 +561,10 @@ const SITES = [
       {id:'MB-01',name:'Man Basket',type:'man-basket',status:'active',spd:2,fuel:null,bat:92,lat:-23.646,lng:-70.403,hrs:4.0,loads:0},
       {id:'GS-01',name:'Gen-Set A',type:'gen-set',status:'active',spd:0,fuel:80,bat:99,lat:-23.653,lng:-70.393,hrs:14.0,loads:0},
       {id:'WE-01',name:'Welding Unit',type:'welding-unit',status:'idle',spd:0,fuel:null,bat:78,lat:-23.657,lng:-70.401,hrs:2.0,loads:0},
+      // Production fleet — Underground
+      {id:'LH-01',name:'LHD 01',type:'lhd',status:'active',spd:13,fuel:61,bat:88,lat:-23.650,lng:-70.397,hrs:8.0,loads:14},
+      {id:'LH-02',name:'LHD 02',type:'lhd',status:'active',spd:9,fuel:43,bat:76,lat:-23.654,lng:-70.400,hrs:9.5,loads:11},
+      {id:'DR-01',name:'Drill Rig 01',type:'drill-rig',status:'active',spd:0,fuel:72,bat:88,lat:-23.647,lng:-70.401,hrs:11.0,loads:0},
     ],
     people:[
       {id:'P-01',name:'Roberto C.',gender:'m',status:'ok',zone:'Tunnel Level 3',lat:-23.650,lng:-70.399,role:'Supervisor',bat:85},
@@ -572,6 +586,10 @@ const SITES = [
       {id:'FT-01',name:'Fuel Truck',type:'fuel-truck',status:'idle',spd:0,fuel:98,bat:97,lat:-24.270,lng:-69.082,hrs:1.0,loads:0},
       {id:'CP-01',name:'Compressor 01',type:'compressor',status:'active',spd:0,fuel:59,bat:87,lat:-24.265,lng:-69.078,hrs:7.3,loads:0},
       {id:'GS-01',name:'Gen-Set A',type:'gen-set',status:'active',spd:0,fuel:73,bat:99,lat:-24.266,lng:-69.071,hrs:11.0,loads:0},
+      // Production fleet — Mixed
+      {id:'HT-01',name:'Haul Truck 01',type:'haul-truck',status:'active',spd:24,fuel:65,bat:87,lat:-24.267,lng:-69.077,hrs:5.0,loads:6},
+      {id:'SH-01',name:'Shovel 01',type:'excavator',status:'idle',spd:0,fuel:79,bat:93,lat:-24.270,lng:-69.078,hrs:2.5,loads:0},
+      {id:'LH-01',name:'LHD 01',type:'lhd',status:'active',spd:10,fuel:55,bat:82,lat:-24.265,lng:-69.076,hrs:7.0,loads:9},
     ],
     people:[
       {id:'P-01',name:'Elena S.',gender:'f',status:'ok',zone:'Control Room',lat:-24.267,lng:-69.078,role:'Supervisor',bat:88},
@@ -744,6 +762,15 @@ function setMode(mode) {
   // Reset classes
   banner.className = 'mode-banner mb-' + mode;
 
+  // Helper: set active filter tab by filter key
+  function syncFilterTab(f) {
+    activeFilter = f;
+    document.querySelectorAll('.ftab').forEach(t => {
+      const oc = t.getAttribute('onclick') || '';
+      t.classList.toggle('active', oc.includes(`'${f}'`));
+    });
+  }
+
   if (mode === 'locate') {
     map.style.display = 'block';
     canvas.style.display = 'none';
@@ -752,6 +779,7 @@ function setMode(mode) {
     bannerText.textContent = 'AUX EQUIPMENT TRACKING — SATELLITE';
     setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(); }, 50);
     stopPitAnim(); stopProtectAnim();
+    syncFilterTab('all');
   } else if (mode === 'optimize') {
     map.style.display = 'none';
     canvas.style.display = 'block';
@@ -759,6 +787,7 @@ function setMode(mode) {
     banner.querySelector('.mb-icon').textContent = 'analytics';
     bannerText.textContent = 'OPTIMIZE — MINE OPERATIONS VIEW';
     stopProtectAnim(); startPitAnim();
+    syncFilterTab('fleet');
   } else if (mode === 'protect') {
     map.style.display = 'block';
     canvas.style.display = 'none';
@@ -768,6 +797,7 @@ function setMode(mode) {
     stopPitAnim();
     setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(); }, 50);
     startProtectAnim();
+    syncFilterTab('workers');
   }
 
   renderRp();
@@ -1415,17 +1445,68 @@ function renderList() {
   if (!list) return;
   const q = (document.getElementById('searchQ')?.value || '').toLowerCase();
   const assets = SITES[activeSite].assets;
-  let items = assets.filter(a => {
-    if (activeFilter === 'fleet')   return a.type !== 'worker';
-    if (activeFilter === 'workers') return a.type === 'worker';
-    if (activeFilter === 'alerts')  return a.status === 'alert';
+  const people = SITES[activeSite].people || [];
+
+  // Status bar (always reflects full site)
+  const ac = assets.filter(a => a.status === 'active').length;
+  const ic = assets.filter(a => a.status === 'idle').length;
+  const alc = assets.filter(a => a.status === 'alert').length;
+  document.getElementById('sb1').textContent = ac + ' Active';
+  document.getElementById('sb2').textContent = ic + ' Idle';
+  document.getElementById('sb3').textContent = alc + ' Alerts';
+  document.getElementById('sb4').textContent = people.length + ' Workers';
+
+  // Workers view: protect mode OR workers filter
+  if (activeMode === 'protect' || activeFilter === 'workers') {
+    let wItems = people.slice();
+    if (activeFilter === 'alerts') wItems = wItems.filter(p => p.status === 'alert' || p.status === 'warning');
+    if (q) wItems = wItems.filter(p => p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q) || p.zone.toLowerCase().includes(q));
+    document.getElementById('aCount').textContent = wItems.length;
+    list.innerHTML = '';
+    wItems.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'a-item' + (p.status === 'alert' ? ' al' : '');
+      const sColor = p.status === 'alert' ? 'var(--red)' : p.status === 'warning' ? 'var(--gold)' : 'var(--green)';
+      const icon = p.gender === 'f' ? '👷‍♀️' : '👷';
+      div.innerHTML = `
+        <div style="font-size:1.3rem;flex-shrink:0">${icon}</div>
+        <div class="a-info">
+          <div class="a-name">${p.name}</div>
+          <div class="a-sub">${p.role} · ${p.zone}</div>
+        </div>
+        <div class="a-meta">
+          <div style="color:${sColor};font-weight:700">${p.status === 'alert' ? '🚨 ALERT' : p.status === 'warning' ? '⚠ WARN' : '✓ OK'}</div>
+          <div ${p.bat < 20 ? 'style="color:var(--red)"' : ''}>${p.bat}% 🔋</div>
+        </div>`;
+      if (p.alert) {
+        const alertRow = document.createElement('div');
+        alertRow.style.cssText = 'font-size:.6rem;color:var(--red);padding:2px 8px 4px 48px;';
+        alertRow.textContent = '⚠ ' + p.alert;
+        div.appendChild(alertRow);
+      }
+      list.appendChild(div);
+    });
+    return;
+  }
+
+  // Equipment view: filter base by mode
+  let baseAssets;
+  if (activeMode === 'optimize' || activeFilter === 'fleet') {
+    // Optimize or explicit Fleet click → production fleet
+    baseAssets = assets.filter(a => PROD_TYPES.has(a.type));
+  } else {
+    // Locate (default) → aux equipment (non-production)
+    baseAssets = assets.filter(a => !PROD_TYPES.has(a.type));
+  }
+
+  let items = baseAssets.filter(a => {
+    if (activeFilter === 'alerts') return a.status === 'alert';
     return true;
   }).filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q) || a.type.toLowerCase().includes(q));
 
   document.getElementById('aCount').textContent = items.length;
   list.innerHTML = '';
   items.forEach(a => {
-    const dc = a.status === 'alert' ? 'd-r' : a.status === 'active' ? 'd-g' : 'd-y';
     const bc = a.bat < 20 ? 'style="color:var(--red)"' : a.bat < 50 ? 'style="color:var(--gold)"' : '';
     const emoji = TYPE_ICON[a.type] || '📦';
     const div = document.createElement('div');
@@ -1444,16 +1525,6 @@ function renderList() {
     div.onclick = () => openDC(a.id);
     list.appendChild(div);
   });
-
-  // Status bar
-  const ac = assets.filter(a => a.status === 'active').length;
-  const ic = assets.filter(a => a.status === 'idle').length;
-  const alc = assets.filter(a => a.status === 'alert').length;
-  const wc = (SITES[activeSite].people || []).length;
-  document.getElementById('sb1').textContent = ac + ' Active';
-  document.getElementById('sb2').textContent = ic + ' Idle';
-  document.getElementById('sb3').textContent = alc + ' Alerts';
-  document.getElementById('sb4').textContent = wc + ' Workers';
 }
 
 function filterA(f, el) {
