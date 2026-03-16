@@ -760,12 +760,13 @@ function setMode(mode) {
     bannerText.textContent = 'OPTIMIZE — MINE OPERATIONS VIEW';
     stopProtectAnim(); startPitAnim();
   } else if (mode === 'protect') {
-    map.style.display = 'none';
+    map.style.display = 'block';
     canvas.style.display = 'none';
     toggle.classList.remove('show');
     banner.querySelector('.mb-icon').textContent = 'shield';
     bannerText.textContent = 'PEOPLE SAFETY — GEOFENCE VIEW';
     stopPitAnim();
+    setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(); }, 50);
     startProtectAnim();
   }
 
@@ -786,7 +787,7 @@ function startProtectAnim() {
   canvas.style.display = 'block';
   stopProtectAnim();
   function frame() {
-    protectTime += 0.5;
+    protectTime += 0.15;
     drawProtect(canvas);
     protectAnimFrame = requestAnimationFrame(frame);
   }
@@ -805,18 +806,8 @@ function drawProtect(canvas) {
   const t = protectTime;
   ctx.clearRect(0, 0, W, H);
 
-  // Background — facility floor plan feel
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#050e1a');
-  bg.addColorStop(1, '#0a1628');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // Grid — floor plan grid
-  ctx.strokeStyle = 'rgba(26,110,216,0.07)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  // Transparent — satellite map shows through underneath
+  // (just a very subtle dark tint to improve zone readability)
 
   // ── FACILITY ZONES ──
   const zones = [
