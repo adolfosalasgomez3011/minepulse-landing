@@ -326,6 +326,7 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 
 /* ════ CANVAS MINING VIEW ════ */
 #pitCanvas{background:#1a1008}
+#protectCanvas{position:absolute;inset:0;z-index:2;display:none}
 
 /* ════ RESPONSIVE ════ */
 @media(max-width:768px){
@@ -412,6 +413,8 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
     <div id="leafletMap"></div>
     <!-- Canvas for Optimize pit/tunnel -->
     <canvas id="pitCanvas"></canvas>
+    <!-- Canvas for Protect people view -->
+    <canvas id="protectCanvas"></canvas>
 
     <!-- Mode banner -->
     <div class="map-hud">
@@ -500,55 +503,81 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 // ══════════════════════════
 // MINE SITES data
 // ══════════════════════════
+// Asset type → emoji icon mapping
+const TYPE_ICON = {
+  'light-plant':'💡','compressor':'🔧','aux-truck':'🚐','water-truck':'🚒',
+  'fuel-truck':'⛽','welding-unit':'🔩','gen-set':'⚡','man-basket':'🪣',
+  'haul-truck':'🚛','excavator':'⛏️','shovel':'⛏️','dozer':'🏗️',
+  'drill':'🔩','loader':'🏗️','grader':'🚧','support':'🔧',
+  'worker-m':'👷','worker-f':'👷‍♀️'
+};
+
 const SITES = [
   {
     name:'Mine 1 — Open Pit',
     type:'openpit',
-    // Chuquicamata open pit, Chile (publicly known landmark)
     center:[-22.299, -68.901],
     zoom:15,
     assets:[
-      {id:'T-01',name:'Haul Truck 01',type:'haul-truck',status:'active',spd:28,fuel:72,bat:95,lat:-22.296,lng:-68.907,hrs:6.2,loads:8},
-      {id:'T-02',name:'Haul Truck 02',type:'haul-truck',status:'active',spd:31,fuel:58,bat:91,lat:-22.301,lng:-68.895,hrs:7.1,loads:9},
-      {id:'T-03',name:'Haul Truck 03',type:'haul-truck',status:'idle',spd:0,fuel:88,bat:97,lat:-22.304,lng:-68.903,hrs:2.1,loads:3},
-      {id:'D-01',name:'Dozer 01',type:'dozer',status:'active',spd:8,fuel:45,bat:88,lat:-22.298,lng:-68.899,hrs:9.3,loads:0},
-      {id:'E-01',name:'Shovel 01',type:'excavator',status:'active',spd:2,fuel:63,bat:94,lat:-22.302,lng:-68.905,hrs:8.5,loads:0},
-      {id:'G-01',name:'Grader 01',type:'grader',status:'alert',spd:0,fuel:12,bat:44,lat:-22.295,lng:-68.898,hrs:11.2,loads:0,alert:'Fuel CRITICAL 12%'},
-      {id:'W-01',name:'Worker Alpha',type:'worker',status:'active',spd:3,fuel:null,bat:88,lat:-22.299,lng:-68.902,hrs:4.2,loads:0},
-      {id:'W-02',name:'Worker Bravo',type:'worker',status:'active',spd:0,fuel:null,bat:72,lat:-22.305,lng:-68.897,hrs:4.2,loads:0},
-      {id:'W-03',name:'Worker Charlie',type:'worker',status:'alert',spd:4,fuel:null,bat:15,lat:-22.297,lng:-68.904,hrs:5.1,loads:0,alert:'Battery 15% critical'},
+      {id:'LP-01',name:'Light Plant 01',type:'light-plant',status:'active',spd:0,fuel:62,bat:99,lat:-22.296,lng:-68.907,hrs:8.0,loads:0},
+      {id:'LP-02',name:'Light Plant 02',type:'light-plant',status:'idle',spd:0,fuel:88,bat:99,lat:-22.301,lng:-68.893,hrs:2.0,loads:0},
+      {id:'CP-01',name:'Compressor 01',type:'compressor',status:'active',spd:0,fuel:45,bat:92,lat:-22.303,lng:-68.904,hrs:7.5,loads:0},
+      {id:'AT-01',name:'Aux Truck 01',type:'aux-truck',status:'active',spd:22,fuel:71,bat:88,lat:-22.298,lng:-68.899,hrs:5.1,loads:0},
+      {id:'AT-02',name:'Aux Truck 02',type:'aux-truck',status:'alert',spd:0,fuel:9,bat:44,lat:-22.295,lng:-68.898,hrs:9.2,loads:0,alert:'Fuel CRITICAL 9%'},
+      {id:'WT-01',name:'Water Truck',type:'water-truck',status:'active',spd:18,fuel:77,bat:91,lat:-22.300,lng:-68.906,hrs:4.8,loads:0},
+      {id:'FT-01',name:'Fuel Truck',type:'fuel-truck',status:'idle',spd:0,fuel:95,bat:97,lat:-22.304,lng:-68.901,hrs:1.2,loads:0},
+      {id:'GS-01',name:'Gen-Set A',type:'gen-set',status:'active',spd:0,fuel:58,bat:99,lat:-22.296,lng:-68.903,hrs:12.0,loads:0},
+      {id:'WE-01',name:'Welding Unit',type:'welding-unit',status:'idle',spd:0,fuel:null,bat:76,lat:-22.302,lng:-68.897,hrs:3.0,loads:0},
+    ],
+    people:[
+      {id:'P-01',name:'Carlos M.',gender:'m',status:'ok',zone:'Control Room',lat:-22.297,lng:-68.902,role:'Supervisor',bat:88},
+      {id:'P-02',name:'Ana R.',gender:'f',status:'ok',zone:'Electrical Room',lat:-22.299,lng:-68.900,role:'Electrician',bat:72},
+      {id:'P-03',name:'Miguel T.',gender:'m',status:'alert',zone:'High Altitude',lat:-22.302,lng:-68.905,role:'Tech',bat:15,alert:'Fall detected — 18m height'},
+      {id:'P-04',name:'Sofia L.',gender:'f',status:'ok',zone:'Processing Plant',lat:-22.295,lng:-68.908,role:'Operator',bat:91},
+      {id:'P-05',name:'Jorge B.',gender:'m',status:'warning',zone:'Blast Zone',lat:-22.305,lng:-68.896,role:'Blaster',bat:67,alert:'Near blast perimeter'},
+      {id:'P-06',name:'Laura V.',gender:'f',status:'ok',zone:'Workshop',lat:-22.293,lng:-68.903,role:'Mechanic',bat:83},
     ]
   },
   {
     name:'Mine 2 — Underground',
     type:'underground',
-    // Actual underground mine region, Northern Chile
     center:[-23.652, -70.398],
     zoom:14,
     assets:[
-      {id:'LHD-01',name:'LHD Loader 01',type:'loader',status:'active',spd:15,fuel:68,bat:90,lat:-23.648,lng:-70.402,hrs:5.1,loads:12},
-      {id:'LHD-02',name:'LHD Loader 02',type:'loader',status:'idle',spd:0,fuel:82,bat:95,lat:-23.655,lng:-70.395,hrs:1.2,loads:3},
-      {id:'DT-01',name:'Dump Truck 01',type:'haul-truck',status:'active',spd:22,fuel:55,bat:88,lat:-23.651,lng:-70.400,hrs:6.8,loads:10},
-      {id:'DR-01',name:'Drill Rig 01',type:'drill',status:'active',spd:0,fuel:71,bat:92,lat:-23.649,lng:-70.394,hrs:8.0,loads:0},
-      {id:'SU-01',name:'Support Unit',type:'support',status:'idle',spd:0,fuel:94,bat:99,lat:-23.656,lng:-70.403,hrs:0.5,loads:0},
-      {id:'W-A',name:'Worker Alpha',type:'worker',status:'active',spd:2,fuel:null,bat:82,lat:-23.653,lng:-70.397,hrs:3.5,loads:0},
-      {id:'W-B',name:'Worker Bravo',type:'worker',status:'alert',spd:1,fuel:null,bat:11,lat:-23.650,lng:-70.401,hrs:5.0,loads:0,alert:'Battery 11% — URGENT'},
-      {id:'W-C',name:'Worker Charlie',type:'worker',status:'active',spd:0,fuel:null,bat:78,lat:-23.647,lng:-70.399,hrs:4.1,loads:0},
+      {id:'LP-01',name:'Light Plant 01',type:'light-plant',status:'active',spd:0,fuel:55,bat:99,lat:-23.648,lng:-70.402,hrs:10.0,loads:0},
+      {id:'CP-01',name:'Compressor 01',type:'compressor',status:'active',spd:0,fuel:68,bat:90,lat:-23.651,lng:-70.398,hrs:9.0,loads:0},
+      {id:'CP-02',name:'Compressor 02',type:'compressor',status:'alert',spd:0,fuel:22,bat:55,lat:-23.655,lng:-70.395,hrs:11.0,loads:0,alert:'Pressure fault'},
+      {id:'AT-01',name:'Aux Truck 01',type:'aux-truck',status:'active',spd:15,fuel:71,bat:88,lat:-23.649,lng:-70.400,hrs:6.0,loads:0},
+      {id:'MB-01',name:'Man Basket',type:'man-basket',status:'active',spd:2,fuel:null,bat:92,lat:-23.646,lng:-70.403,hrs:4.0,loads:0},
+      {id:'GS-01',name:'Gen-Set A',type:'gen-set',status:'active',spd:0,fuel:80,bat:99,lat:-23.653,lng:-70.393,hrs:14.0,loads:0},
+      {id:'WE-01',name:'Welding Unit',type:'welding-unit',status:'idle',spd:0,fuel:null,bat:78,lat:-23.657,lng:-70.401,hrs:2.0,loads:0},
+    ],
+    people:[
+      {id:'P-01',name:'Roberto C.',gender:'m',status:'ok',zone:'Tunnel Level 3',lat:-23.650,lng:-70.399,role:'Supervisor',bat:85},
+      {id:'P-02',name:'Maria G.',gender:'f',status:'ok',zone:'Control Room',lat:-23.648,lng:-70.396,role:'Dispatcher',bat:90},
+      {id:'P-03',name:'Luis P.',gender:'m',status:'alert',zone:'Electrical Room',lat:-23.653,lng:-70.402,role:'Electrician',bat:12,alert:'Battery critical — lone worker'},
+      {id:'P-04',name:'Carmen N.',gender:'f',status:'ok',zone:'Workshop',lat:-23.655,lng:-70.394,role:'Mechanic',bat:74},
+      {id:'P-05',name:'Andrés F.',gender:'m',status:'warning',zone:'High Work Platform',lat:-23.647,lng:-70.404,role:'Rigger',bat:61,alert:'Working at height — no spotter'},
     ]
   },
   {
     name:'Mine 3 — Mixed',
     type:'mixed',
-    // Escondida mine region, Chile
     center:[-24.268, -69.076],
     zoom:14,
     assets:[
-      {id:'T-01',name:'Haul Truck 01',type:'haul-truck',status:'active',spd:25,fuel:66,bat:91,lat:-24.264,lng:-69.080,hrs:5.5,loads:7},
-      {id:'T-02',name:'Haul Truck 02',type:'haul-truck',status:'alert',spd:0,fuel:8,bat:52,lat:-24.272,lng:-69.073,hrs:9.1,loads:11,alert:'Fuel 8% — stop engine'},
-      {id:'WL-01',name:'Wheel Loader',type:'loader',status:'idle',spd:0,fuel:90,bat:98,lat:-24.270,lng:-69.082,hrs:1.0,loads:0},
-      {id:'E-01',name:'Excavator 01',type:'excavator',status:'active',spd:3,fuel:59,bat:87,lat:-24.265,lng:-69.075,hrs:7.3,loads:0},
-      {id:'W-X',name:'Worker Xray',type:'worker',status:'active',spd:2,fuel:null,bat:85,lat:-24.267,lng:-69.078,hrs:3.8,loads:0},
-      {id:'W-Y',name:'Worker Yankee',type:'worker',status:'active',spd:0,fuel:null,bat:69,lat:-24.273,lng:-69.071,hrs:4.6,loads:0},
+      {id:'LP-01',name:'Light Plant 01',type:'light-plant',status:'active',spd:0,fuel:70,bat:99,lat:-24.264,lng:-69.080,hrs:6.0,loads:0},
+      {id:'AT-01',name:'Aux Truck 01',type:'aux-truck',status:'active',spd:20,fuel:66,bat:91,lat:-24.268,lng:-69.075,hrs:5.5,loads:0},
+      {id:'AT-02',name:'Aux Truck 02',type:'aux-truck',status:'alert',spd:0,fuel:7,bat:52,lat:-24.272,lng:-69.073,hrs:9.1,loads:0,alert:'Fuel 7% — stop engine'},
+      {id:'FT-01',name:'Fuel Truck',type:'fuel-truck',status:'idle',spd:0,fuel:98,bat:97,lat:-24.270,lng:-69.082,hrs:1.0,loads:0},
+      {id:'CP-01',name:'Compressor 01',type:'compressor',status:'active',spd:0,fuel:59,bat:87,lat:-24.265,lng:-69.078,hrs:7.3,loads:0},
+      {id:'GS-01',name:'Gen-Set A',type:'gen-set',status:'active',spd:0,fuel:73,bat:99,lat:-24.266,lng:-69.071,hrs:11.0,loads:0},
+    ],
+    people:[
+      {id:'P-01',name:'Elena S.',gender:'f',status:'ok',zone:'Control Room',lat:-24.267,lng:-69.078,role:'Supervisor',bat:88},
+      {id:'P-02',name:'Marco J.',gender:'m',status:'ok',zone:'Processing Plant',lat:-24.264,lng:-69.074,role:'Operator',bat:79},
+      {id:'P-03',name:'Valentina R.',gender:'f',status:'warning',zone:'High Altitude',lat:-24.271,lng:-69.080,role:'Inspector',bat:55,alert:'Height alert — 22m scaffold'},
+      {id:'P-04',name:'Diego M.',gender:'m',status:'alert',zone:'Blast Zone',lat:-24.273,lng:-69.072,role:'Blaster',bat:33,alert:'Unauthorized zone entry'},
     ]
   }
 ];
@@ -657,15 +686,14 @@ function renderMapMarkers() {
 
   const assets = SITES[activeSite].assets;
   assets.forEach(a => {
-    const cls = a.status === 'alert' ? 'lf-alert' : a.type === 'worker' ? 'lf-worker' : a.status === 'active' ? 'lf-active' : 'lf-idle';
+    const cls = a.status === 'alert' ? 'lf-alert' : a.status === 'active' ? 'lf-active' : 'lf-idle';
     const pingCls = a.status === 'alert' ? 'ping-ring-alert' : 'ping-ring-lf';
-    const html = `<div class="lf-marker ${cls}"><div class="${pingCls}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"></div></div><div class="lf-marker-label">${a.id}</div>`;
-    const icon = L.divIcon({className:'', html, iconAnchor:[8,8]});
+    const emoji = TYPE_ICON[a.type] || '📦';
+    const html = `<div style="font-size:18px;line-height:1;filter:drop-shadow(0 0 4px rgba(255,255,255,.5));position:relative">${emoji}<div class="${pingCls}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"></div></div><div class="lf-marker-label">${a.id}</div>`;
+    const icon = L.divIcon({className:'', html, iconAnchor:[10,10]});
     const marker = L.marker([a.lat, a.lng], {icon}).addTo(markerLayer);
     marker.on('click', () => openDC(a.id));
-
-    // Mobile (simpler)
-    const micon = L.divIcon({className:'', html:`<div class="lf-marker ${cls}" style="width:11px;height:11px"></div>`, iconAnchor:[5,5]});
+    const micon = L.divIcon({className:'', html:`<div style="font-size:13px">${emoji}</div>`, iconAnchor:[6,6]});
     L.marker([a.lat, a.lng], {icon:micon}).addTo(mobMarkerLayer).on('click', () => openDC(a.id));
   });
 }
@@ -721,36 +749,219 @@ function setMode(mode) {
     canvas.style.display = 'none';
     toggle.classList.remove('show');
     banner.querySelector('.mb-icon').textContent = 'travel_explore';
-    bannerText.textContent = 'ASSET TRACKING — SATELLITE VIEW';
+    bannerText.textContent = 'AUX EQUIPMENT TRACKING — SATELLITE';
     setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(); }, 50);
-    stopPitAnim();
+    stopPitAnim(); stopProtectAnim();
   } else if (mode === 'optimize') {
     map.style.display = 'none';
     canvas.style.display = 'block';
     toggle.classList.add('show');
     banner.querySelector('.mb-icon').textContent = 'analytics';
     bannerText.textContent = 'OPTIMIZE — MINE OPERATIONS VIEW';
-    startPitAnim();
+    stopProtectAnim(); startPitAnim();
   } else if (mode === 'protect') {
-    map.style.display = 'block';
+    map.style.display = 'none';
     canvas.style.display = 'none';
     toggle.classList.remove('show');
     banner.querySelector('.mb-icon').textContent = 'shield';
-    bannerText.textContent = 'SAFETY MONITOR — SATELLITE VIEW';
-    setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(); }, 50);
+    bannerText.textContent = 'PEOPLE SAFETY — GEOFENCE VIEW';
     stopPitAnim();
-    renderProtectOverlay();
+    startProtectAnim();
   }
 
   renderRp();
 }
 
 // ══════════════════════════
-// PROTECT OVERLAY on map
+// PROTECT CANVAS
 // ══════════════════════════
-function renderProtectOverlay() {
-  // Pulse alert markers red in protect mode
-  renderMapMarkers();
+let protectAnimFrame = null;
+let protectTime = 0;
+
+function startProtectAnim() {
+  const canvas = document.getElementById('protectCanvas');
+  const ca = document.getElementById('centerArea');
+  canvas.width = ca.clientWidth;
+  canvas.height = ca.clientHeight;
+  canvas.style.display = 'block';
+  stopProtectAnim();
+  function frame() {
+    protectTime += 0.5;
+    drawProtect(canvas);
+    protectAnimFrame = requestAnimationFrame(frame);
+  }
+  protectAnimFrame = requestAnimationFrame(frame);
+}
+
+function stopProtectAnim() {
+  if (protectAnimFrame) { cancelAnimationFrame(protectAnimFrame); protectAnimFrame = null; }
+  const c = document.getElementById('protectCanvas');
+  if (c) c.style.display = 'none';
+}
+
+function drawProtect(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const t = protectTime;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background — facility floor plan feel
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#050e1a');
+  bg.addColorStop(1, '#0a1628');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid — floor plan grid
+  ctx.strokeStyle = 'rgba(26,110,216,0.07)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // ── FACILITY ZONES ──
+  const zones = [
+    {x:W*.04,  y:H*.06,  w:W*.19, h:H*.28, label:'CONTROL ROOM',    color:'#1a6ed8', icon:'🖥️',  safe:true},
+    {x:W*.26,  y:H*.06,  w:W*.16, h:H*.28, label:'ELECTRICAL ROOM', color:'#f97316', icon:'⚡',  safe:true},
+    {x:W*.45,  y:H*.06,  w:W*.2,  h:H*.28, label:'PROCESSING PLANT',color:'#0eaeb8', icon:'🏭',  safe:true},
+    {x:W*.68,  y:H*.06,  w:W*.14, h:H*.28, label:'WORKSHOP',        color:'#a855f7', icon:'🔧',  safe:true},
+    {x:W*.84,  y:H*.06,  w:W*.12, h:H*.22, label:'LAB',             color:'#22c55e', icon:'🔬',  safe:true},
+    {x:W*.04,  y:H*.44,  w:W*.22, h:H*.3,  label:'HIGH ALTITUDE WORK',color:'#f0c040',icon:'🏗️', safe:false},
+    {x:W*.29,  y:H*.44,  w:W*.25, h:H*.3,  label:'BLAST ZONE',      color:'#ef4444', icon:'💥',  safe:false, restricted:true},
+    {x:W*.57,  y:H*.44,  w:W*.2,  h:H*.3,  label:'FUEL STATION',    color:'#f97316', icon:'⛽',  safe:true},
+    {x:W*.8,   y:H*.44,  w:W*.16, h:H*.3,  label:'MUSTER POINT',    color:'#22c55e', icon:'✅',  safe:true, muster:true},
+  ];
+
+  zones.forEach(z => {
+    // Zone fill
+    ctx.fillStyle = z.color + (z.restricted ? '18' : '0e');
+    ctx.strokeStyle = z.color + (z.restricted ? 'cc' : '66');
+    ctx.lineWidth = z.restricted ? 2.5 : 1.5;
+    if (z.restricted) ctx.setLineDash([7, 4]);
+    else ctx.setLineDash([]);
+    roundRect(ctx, z.x, z.y, z.w, z.h, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Zone label
+    ctx.fillStyle = z.color;
+    ctx.font = 'bold 9px Montserrat, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(z.icon + ' ' + z.label, z.x + 8, z.y + 16);
+
+    // Geofence pulse ring on restricted zones
+    if (z.restricted || !z.safe) {
+      const pulse = Math.abs(Math.sin(t * 0.04));
+      ctx.strokeStyle = z.color + Math.round(pulse * 150 + 40).toString(16).padStart(2,'0');
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      roundRect(ctx, z.x - 6 - pulse*4, z.y - 6 - pulse*4, z.w + 12 + pulse*8, z.h + 12 + pulse*8, 12);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  });
+
+  // ── PEOPLE ──
+  const site = SITES[activeSite];
+  const people = site.people || [];
+  people.forEach((p, i) => {
+    // Map person position to canvas (spread across zones)
+    const zone = zones[i % zones.length];
+    const px = zone.x + zone.w * 0.25 + Math.sin(t * 0.01 + i * 1.7) * (p.status === 'ok' ? 6 : 2);
+    const py = zone.y + zone.h * 0.5 + Math.cos(t * 0.01 + i * 2.1) * (p.status === 'ok' ? 4 : 1);
+
+    // Alert pulse
+    if (p.status === 'alert' || p.status === 'warning') {
+      const pc = p.status === 'alert' ? '#ef4444' : '#f0c040';
+      const r = 14 + Math.abs(Math.sin(t * 0.12)) * 8;
+      ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2);
+      ctx.fillStyle = pc + '22'; ctx.fill();
+      ctx.strokeStyle = pc + '88'; ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Person figure (circle head + body)
+    const bodyColor = p.status === 'alert' ? '#ef4444' : p.status === 'warning' ? '#f0c040' : '#22c55e';
+    const helmetColor = p.gender === 'f' ? '#ff6b9d' : '#f97316';
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(px, py + 12, 7, 3, 0, 0, Math.PI*2); ctx.fill();
+
+    // Body
+    ctx.fillStyle = bodyColor + 'cc';
+    ctx.fillRect(px - 5, py - 2, 10, 10);
+
+    // Head
+    ctx.beginPath(); ctx.arc(px, py - 5, 6, 0, Math.PI*2);
+    ctx.fillStyle = p.gender === 'f' ? '#fbbf8a' : '#d4956a';
+    ctx.fill();
+
+    // Hard hat
+    ctx.beginPath();
+    ctx.ellipse(px, py - 8, 7, 4, 0, Math.PI, 0);
+    ctx.fillStyle = helmetColor;
+    ctx.fill();
+    ctx.fillRect(px - 8, py - 9, 16, 3);
+
+    // Fall icon for alert
+    if (p.status === 'alert') {
+      ctx.font = '12px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠️', px, py - 22);
+    }
+
+    // Name label
+    ctx.fillStyle = 'rgba(4,11,21,0.85)';
+    ctx.fillRect(px - 20, py + 13, 40, 12);
+    ctx.fillStyle = bodyColor;
+    ctx.font = 'bold 7px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.name, px, py + 22);
+
+    // IoT tag dot
+    ctx.beginPath(); ctx.arc(px + 5, py - 10, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#0eaeb8';
+    ctx.shadowBlur = 6; ctx.shadowColor = '#0eaeb8';
+    ctx.fill(); ctx.shadowBlur = 0;
+  });
+
+  // ── LOITERING / FALL events animated ──
+  people.filter(p => p.status === 'alert').forEach(p => {
+    const zone = zones.find(z => z.label.toLowerCase().includes(p.zone.toLowerCase().split(' ')[0])) || zones[2];
+    const ex = zone.x + zone.w * 0.6;
+    const ey = zone.y + zone.h * 0.7;
+    const r = 22 + Math.abs(Math.sin(t * 0.08)) * 10;
+    ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI*2);
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = '16px serif'; ctx.textAlign = 'center';
+    ctx.fillText('🚨', ex, ey - r - 4);
+  });
+
+  // ── LEGEND ──
+  const leg = [
+    {col:'#22c55e', lbl:'Safe'},
+    {col:'#f0c040', lbl:'Warning'},
+    {col:'#ef4444', lbl:'ALERT'},
+    {col:'#0eaeb8', lbl:'IoT Tag'},
+  ];
+  ctx.fillStyle = 'rgba(4,11,21,0.88)';
+  ctx.strokeStyle = 'rgba(26,110,216,0.3)'; ctx.lineWidth=1;
+  roundRect(ctx, W-120, H-70, 110, 60, 8); ctx.fill(); ctx.stroke();
+  leg.forEach((l, i) => {
+    const lx = W - 110, ly = H - 58 + i * 13;
+    ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI*2);
+    ctx.fillStyle = l.col; ctx.shadowBlur = 5; ctx.shadowColor = l.col;
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#e2e8f0'; ctx.font = '8px Inter, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(l.lbl, lx + 8, ly + 3);
+  });
+
+  // ── TITLE ──
+  ctx.fillStyle = 'rgba(239,68,68,0.9)';
+  ctx.font = 'bold 11px Montserrat, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`PEOPLE SAFETY — ${site.name}  |  ${people.length} Personnel Tracked  |  ${people.filter(p=>p.status==='alert').length} ALERTS`, W/2, H - 10);
 }
 
 // ══════════════════════════
@@ -782,372 +993,384 @@ function stopPitAnim() {
   if (pitAnimFrame) { cancelAnimationFrame(pitAnimFrame); pitAnimFrame = null; }
 }
 
-// ─── OPEN PIT DRAW ───
+// ─── OPEN PIT DRAW (photorealistic) ───
 function drawOpenPit(canvas) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  const cx = W * 0.45, cy = H * 0.52;
   const t = pitTime;
-
   ctx.clearRect(0, 0, W, H);
 
-  // Sky/ground gradient
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#0a1628');
-  bg.addColorStop(0.3, '#0d1c35');
-  bg.addColorStop(1, '#050e1a');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  // ── SKY — gradient horizon ──
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.35);
+  sky.addColorStop(0, '#1a2f4a'); sky.addColorStop(0.5, '#2a4a6e'); sky.addColorStop(1, '#5a7a9a');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H * 0.35);
 
-  // Grid
-  ctx.strokeStyle = 'rgba(26,110,216,0.06)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 44) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  // Haze / atmosphere at horizon
+  const haze = ctx.createLinearGradient(0, H*.28, 0, H*.42);
+  haze.addColorStop(0,'rgba(180,200,220,0.4)'); haze.addColorStop(1,'rgba(180,200,220,0)');
+  ctx.fillStyle=haze; ctx.fillRect(0,H*.28,W,H*.14);
 
-  // Draw pit terraces (concentric ellipses)
-  const levels = 7;
-  for (let i = levels; i >= 1; i--) {
-    const rw = (W * 0.18) + i * (W * 0.055);
-    const rh = (H * 0.07) + i * (H * 0.042);
-    const shade = 20 + i * 18;
-    const rock = i % 2 === 0;
+  // Sun
+  const sunX=W*.82, sunY=H*.07;
+  const sunG=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,40);
+  sunG.addColorStop(0,'rgba(255,240,180,1)'); sunG.addColorStop(0.3,'rgba(255,200,80,.6)'); sunG.addColorStop(1,'rgba(255,200,80,0)');
+  ctx.fillStyle=sunG; ctx.beginPath(); ctx.arc(sunX,sunY,40,0,Math.PI*2); ctx.fill();
+
+  // ── SURROUNDING TERRAIN (rim) ──
+  // Rocky rim around pit — irregular polygon
+  ctx.fillStyle='#5a4a35';
+  ctx.beginPath(); ctx.moveTo(0,H*.38);
+  for(let x=0;x<=W;x+=W*.04){
+    const y=H*.34+Math.sin(x*.018+t*.002)*H*.04+Math.sin(x*.034)*H*.02;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fill();
+
+  // ── PIT BENCHES — realistic perspective ──
+  // Draw from outer rim down to pit floor in perspective
+  const benchCount = 8;
+  const pitCX = W * 0.5, pitTop = H * 0.36;
+  // Each bench is a trapezoid narrowing toward center
+  for (let b = 0; b < benchCount; b++) {
+    const progress = b / benchCount;
+    const nextProg = (b+1) / benchCount;
+    // Rock colors — alternating warm/cool tones
+    const r = Math.round(80 - b*4 + (b%2)*12);
+    const g = Math.round(65 - b*3 + (b%2)*8);
+    const bv = Math.round(48 - b*3 + (b%3)*6);
+    ctx.fillStyle = `rgb(${r},${g},${bv})`;
+
+    const outerW = W*(0.92-progress*0.3)/2;
+    const innerW = W*(0.92-nextProg*0.3)/2;
+    const topY  = pitTop + progress * (H*0.55);
+    const botY  = pitTop + nextProg * (H*0.55);
+
     ctx.beginPath();
-    ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
-    if (rock) {
-      ctx.fillStyle = `rgb(${shade+10},${shade+5},${shade-5})`;
-    } else {
-      ctx.fillStyle = `rgb(${shade+5},${shade+8},${shade+12})`;
-    }
+    ctx.moveTo(pitCX - outerW, topY);
+    ctx.lineTo(pitCX + outerW, topY);
+    ctx.lineTo(pitCX + innerW, botY);
+    ctx.lineTo(pitCX - innerW, botY);
+    ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = 'rgba(100,80,50,0.3)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+
+    // Bench edge shadow
+    ctx.fillStyle = `rgba(0,0,0,0.25)`;
+    ctx.fillRect(pitCX - outerW, topY, outerW*2, 5);
+
+    // Rock texture — small jagged lines
+    ctx.strokeStyle = `rgba(0,0,0,${0.1+b*0.015})`;
+    ctx.lineWidth = 0.8;
+    for(let tx=pitCX-outerW+10;tx<pitCX+outerW-10;tx+=18){
+      ctx.beginPath();
+      ctx.moveTo(tx, topY+6);
+      ctx.lineTo(tx+8, topY+13);
+      ctx.lineTo(tx+4, topY+10);
+      ctx.stroke();
+    }
+
+    // Mineral staining — copper/oxide color streaks on some benches
+    if(b%2===1){
+      ctx.fillStyle='rgba(180,100,30,0.12)';
+      for(let sx=pitCX-innerW+20;sx<pitCX+innerW-20;sx+=55){
+        ctx.fillRect(sx, topY+4, 12+Math.sin(sx)*8, botY-topY-4);
+      }
+    }
+
+    // Haul road — diagonal switchback cut into bench
+    if(b % 2 === 0){
+      ctx.strokeStyle='rgba(220,190,140,0.5)';
+      ctx.lineWidth=4;
+      const side = (b/2)%2===0 ? 1 : -1;
+      ctx.beginPath();
+      ctx.moveTo(pitCX + side*innerW, topY);
+      ctx.lineTo(pitCX - side*outerW*0.5, botY);
+      ctx.stroke();
+    }
   }
 
-  // Pit floor (darkest ellipse)
+  // ── PIT FLOOR ──
+  const floorProgress = 1.0;
+  const floorW = W*(0.92-floorProgress*0.3)/2;
+  const floorY = pitTop + H*0.55;
+  const floorG=ctx.createLinearGradient(pitCX-floorW,floorY,pitCX+floorW,floorY+H*.08);
+  floorG.addColorStop(0,'#2a1f12'); floorG.addColorStop(0.5,'#1a1208'); floorG.addColorStop(1,'#2a1f12');
+  ctx.fillStyle=floorG;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, W * 0.18, H * 0.07, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#0d0a05';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(212,160,23,0.2)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.moveTo(pitCX-floorW,floorY);
+  ctx.lineTo(pitCX+floorW,floorY);
+  ctx.lineTo(pitCX+floorW*0.7,floorY+H*.08);
+  ctx.lineTo(pitCX-floorW*0.7,floorY+H*.08);
+  ctx.closePath(); ctx.fill();
 
-  // Haul road spiral line
-  ctx.strokeStyle = 'rgba(212,160,23,0.3)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath();
-  for (let angle = 0; angle <= Math.PI * 14; angle += 0.05) {
-    const progress = angle / (Math.PI * 14);
-    const rw2 = W * 0.18 + progress * W * 0.38;
-    const rh2 = H * 0.07 + progress * H * 0.30;
-    const x = cx + rw2 * Math.cos(angle + 0.5);
-    const y = cy + rh2 * Math.sin(angle + 0.5) * 0.4;
-    if (angle === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // Active excavation dust cloud at floor
+  const dustA = 0.12 + Math.abs(Math.sin(t*0.04))*0.08;
+  const dustG=ctx.createRadialGradient(pitCX,floorY+H*.03,0,pitCX,floorY+H*.03,floorW*.5);
+  dustG.addColorStop(0,`rgba(200,170,120,${dustA})`); dustG.addColorStop(1,'rgba(200,170,120,0)');
+  ctx.fillStyle=dustG;
+  ctx.beginPath(); ctx.ellipse(pitCX,floorY+H*.03,floorW*.5,H*.04,0,0,Math.PI*2); ctx.fill();
 
-  // Mineral veins
-  ctx.strokeStyle = 'rgba(212,160,23,0.15)';
-  ctx.lineWidth = 1;
-  [[cx - W * 0.1, cy - H * 0.05, cx + W * 0.12, cy + H * 0.06],
-   [cx + W * 0.05, cy - H * 0.06, cx - W * 0.08, cy + H * 0.04]].forEach(([x1, y1, x2, y2]) => {
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  // ── EQUIPMENT — shovels and haul trucks ──
+  const eqAssets = SITES[activeSite].assets;
+  // Place shovel-type equipment at pit floor area
+  const shovels = eqAssets.filter(a=>a.type==='excavator'||a.type==='shovel'||a.type==='loader');
+  shovels.forEach((a,i)=>{
+    const ex=pitCX-floorW*0.4+i*floorW*0.4;
+    const ey=floorY+H*.04;
+    const col=a.status==='alert'?'#ef4444':'#f0c040';
+    // Shovel body
+    ctx.fillStyle=col+'dd'; ctx.shadowBlur=10; ctx.shadowColor=col;
+    ctx.fillRect(ex-14,ey-18,28,18);
+    // Cab
+    ctx.fillStyle='#333'; ctx.fillRect(ex+2,ey-26,12,10);
+    // Shovel arm
+    ctx.strokeStyle=col; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(ex-8,ey-18); ctx.lineTo(ex-28,ey-38+Math.sin(t*.04+i)*8); ctx.stroke();
+    ctx.strokeStyle=col+'88'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ex-28,ey-38+Math.sin(t*.04+i)*8); ctx.lineTo(ex-38,ey-24+Math.sin(t*.04+i)*8); ctx.stroke();
+    ctx.shadowBlur=0;
+    // Label
+    ctx.fillStyle='rgba(4,11,21,.9)'; ctx.fillRect(ex-15,ey-50,30,12);
+    ctx.fillStyle='#f0c040'; ctx.font='7px Share Tech Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('⛏️ '+a.id,ex,ey-42);
   });
 
-  // Moving haul trucks on road
-  const assets = SITES[activeSite].assets.filter(a => a.type === 'haul-truck' || a.type === 'loader');
-  assets.forEach((a, i) => {
-    const angle = (t * 0.008 + i * (Math.PI * 2 / assets.length)) % (Math.PI * 2);
-    const depth = i % 3;
-    const rw2 = W * (0.22 + depth * 0.12);
-    const rh2 = H * (0.09 + depth * 0.09);
-    const x = cx + rw2 * Math.cos(angle);
-    const y = cy + rh2 * Math.sin(angle) * 0.42;
-
+  // Haul trucks spiraling up the haul road
+  const trucks = eqAssets.filter(a=>a.type==='haul-truck'||a.type==='aux-truck'||a.type==='water-truck');
+  trucks.forEach((a,i)=>{
+    const roadProgress = ((t*0.006+i*(1/Math.max(trucks.length,1)))%1);
+    const bench = roadProgress * benchCount;
+    const bIdx = Math.floor(bench);
+    const bFrac = bench - bIdx;
+    const bProg = bIdx/benchCount;
+    const nextBProg = (bIdx+1)/benchCount;
+    const outerW2=W*(0.92-bProg*0.3)/2;
+    const innerW2=W*(0.92-nextBProg*0.3)/2;
+    const topY2=pitTop+bProg*(H*.55);
+    const botY2=pitTop+nextBProg*(H*.55);
+    const side=(bIdx%2===0)?1:-1;
+    const tx2=pitCX+side*innerW2*(1-bFrac)-side*outerW2*.5*bFrac;
+    const ty2=topY2+bFrac*(botY2-topY2);
+    const col=a.status==='alert'?'#ef4444':a.status==='active'?'#22c55e':'#d4a017';
+    // Truck shadow
+    ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(tx2+3,ty2+6,10,3,0,0,Math.PI*2); ctx.fill();
     // Truck body
-    const col = a.status === 'alert' ? '#ef4444' : a.status === 'active' ? '#22c55e' : '#d4a017';
-    ctx.fillStyle = col;
-    ctx.shadowBlur = 10; ctx.shadowColor = col;
-    ctx.fillRect(x - 6, y - 4, 12, 8);
-    ctx.shadowBlur = 0;
-
-    // Truck label
-    ctx.fillStyle = 'rgba(4,11,21,0.85)';
-    ctx.fillRect(x - 12, y - 17, 24, 12);
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = '8px Share Tech Mono, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(a.id, x, y - 8);
-
-    // Trail
-    ctx.strokeStyle = col + '40';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let back = 0; back < 0.4; back += 0.02) {
-      const ba = angle - back;
-      const bx = cx + rw2 * Math.cos(ba);
-      const by = cy + rh2 * Math.sin(ba) * 0.42;
-      if (back === 0) ctx.moveTo(bx, by); else ctx.lineTo(bx, by);
-    }
+    ctx.fillStyle=col+'dd'; ctx.shadowBlur=8; ctx.shadowColor=col;
+    ctx.fillRect(tx2-8,ty2-5,16,10);
+    ctx.shadowBlur=0;
+    // Cab
+    ctx.fillStyle='rgba(30,30,30,.9)'; ctx.fillRect(tx2+2,ty2-8,6,6);
+    // Wheels
+    ctx.fillStyle='#1a1a2e';
+    [[-7,2],[5,2]].forEach(([dx,dy])=>{ ctx.beginPath(); ctx.arc(tx2+dx,ty2+dy,3,0,Math.PI*2); ctx.fill(); });
+    // Label
+    ctx.fillStyle='#e2e8f0'; ctx.font='7px Share Tech Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('🚛 '+a.id,tx2,ty2-14);
+    // Dust trail
+    ctx.strokeStyle=col+'30'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(tx2,ty2);
+    const prevProg=((t*0.006+i/Math.max(trucks.length,1)-0.05+1)%1);
+    const pBench=prevProg*benchCount;
+    const pBIdx=Math.floor(pBench); const pFrac=pBench-pBIdx;
+    const pBProg=pBIdx/benchCount; const pNextBProg=(pBIdx+1)/benchCount;
+    const pOW=W*(0.92-pBProg*0.3)/2; const pIW=W*(0.92-pNextBProg*0.3)/2;
+    const pTopY=pitTop+pBProg*(H*.55); const pBotY=pitTop+pNextBProg*(H*.55);
+    const pSide=(pBIdx%2===0)?1:-1;
+    ctx.lineTo(pitCX+pSide*pIW*(1-pFrac)-pSide*pOW*.5*pFrac,pTopY+pFrac*(pBotY-pTopY));
     ctx.stroke();
   });
 
-  // Worker dots
-  SITES[activeSite].assets.filter(a => a.type === 'worker').forEach((w, i) => {
-    const angle = t * 0.003 + i * 2.1;
-    const x = cx + W * 0.14 * Math.cos(angle) + 30;
-    const y = cy + H * 0.065 * Math.sin(angle) * 0.4 + 20;
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    const wc = w.status === 'alert' ? '#ef4444' : '#4da3ff';
-    ctx.fillStyle = wc;
-    ctx.shadowBlur = 8; ctx.shadowColor = wc;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = '7px Share Tech Mono, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(w.id, x, y - 8);
-  });
+  // ── BLAST HOLE ROW on top bench ──
+  for(let bx2=pitCX-W*.38;bx2<pitCX+W*.38;bx2+=W*.04){
+    ctx.beginPath(); ctx.arc(bx2, pitTop+8, 2, 0, Math.PI*2);
+    ctx.fillStyle='rgba(239,68,68,0.6)'; ctx.fill();
+  }
+  ctx.fillStyle='rgba(239,68,68,.7)'; ctx.font='7px Inter,sans-serif'; ctx.textAlign='left';
+  ctx.fillText('● BLAST HOLES',pitCX-W*.38,pitTop+4);
 
-  // Pit label
-  ctx.fillStyle = 'rgba(212,160,23,0.9)';
-  ctx.font = 'bold 11px Montserrat, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('OPEN PIT — BENCHED SECTION', cx, cy + H * 0.1 + 18);
-  ctx.fillStyle = 'rgba(148,163,184,0.6)';
-  ctx.font = '9px Share Tech Mono, monospace';
-  ctx.fillText(`${SITES[activeSite].name}  |  Depth: ${Math.round(80 + Math.sin(t*0.01)*5)}m  |  Active trucks: ${assets.length}`, cx, cy + H * 0.1 + 33);
+  // ── TITLE ──
+  ctx.fillStyle='rgba(212,160,23,.9)'; ctx.font='bold 11px Montserrat,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(`OPEN PIT — ${SITES[activeSite].name}  |  Depth: ~${Math.round(180+Math.sin(t*.01)*5)}m  |  ${trucks.length} Trucks  |  ${shovels.length} Shovels`,W/2,H-10);
 
-  // KPI overlay top-left
-  drawKpiOverlay(ctx, W, H);
+  drawKpiOverlay(ctx,W,H);
 }
 
-// ─── TUNNEL DRAW ───
+// ─── TUNNEL DRAW (photorealistic single-point perspective) ───
 function drawTunnel(canvas) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  const cx = W * 0.5, cy = H * 0.48;
   const t = pitTime;
-
   ctx.clearRect(0, 0, W, H);
 
-  // Background — dark rock
-  ctx.fillStyle = '#06090e';
+  // ── VANISHING POINT (center of tunnel) ──
+  const vpX = W * 0.5, vpY = H * 0.46;
+  const tunnelW = W * 0.46, tunnelH = H * 0.72;
+  const halfW = tunnelW / 2, halfH = tunnelH / 2;
+  const lx = vpX - halfW, rx = vpX + halfW;
+  const ty = vpY - halfH, by = vpY + halfH;
+
+  // ── TUNNEL MOUTH — the near entrance ──
+  // Outer rock face
+  ctx.fillStyle = '#1a1208';
   ctx.fillRect(0, 0, W, H);
 
-  // Grid
-  ctx.strokeStyle = 'rgba(26,110,216,0.04)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 44) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
-  // Draw tunnel perspective (3 branching tunnels)
-  const tunnels = [
-    { dir: 0, label: 'Level 3 West', color: '#1a6ed8' },
-    { dir: -0.28, label: 'Level 3 East', color: '#0eaeb8' },
-    { dir: 0.22, label: 'Level 4 North', color: '#a855f7' },
-  ];
-
-  tunnels.forEach((tn, ti) => {
-    const offsetY = (ti - 1) * H * 0.27;
-    const tcy = cy + offsetY;
-
-    // Tunnel walls (perspective)
-    const depth = 600;
-    const vwH = H * 0.18;
-    const vwW = W * 0.12;
-    const vanX = cx + Math.sin(tn.dir) * depth;
-    const vanY = tcy;
-
-    // Side walls
-    ctx.fillStyle = '#14100a';
-    ctx.beginPath();
-    ctx.moveTo(0, tcy - H * 0.12);
-    ctx.lineTo(cx - vwW, tcy - (vwH * 0.55));
-    ctx.lineTo(vanX, vanY - 4);
-    ctx.lineTo(cx - vwW, tcy + (vwH * 0.55));
-    ctx.lineTo(0, tcy + H * 0.12);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(W, tcy - H * 0.12);
-    ctx.lineTo(cx + vwW, tcy - (vwH * 0.55));
-    ctx.lineTo(vanX, vanY - 4);
-    ctx.lineTo(cx + vwW, tcy + (vwH * 0.55));
-    ctx.lineTo(W, tcy + H * 0.12);
-    ctx.closePath();
-    ctx.fill();
-
-    // Ceiling
-    ctx.fillStyle = '#1a150c';
-    ctx.beginPath();
-    ctx.moveTo(0, tcy - H * 0.12);
-    ctx.lineTo(W, tcy - H * 0.12);
-    ctx.lineTo(cx + vwW, tcy - (vwH * 0.55));
-    ctx.lineTo(vanX, vanY - 4);
-    ctx.lineTo(cx - vwW, tcy - (vwH * 0.55));
-    ctx.closePath();
-    ctx.fill();
-
-    // Floor
-    ctx.fillStyle = '#0d0a05';
-    ctx.beginPath();
-    ctx.moveTo(0, tcy + H * 0.12);
-    ctx.lineTo(W, tcy + H * 0.12);
-    ctx.lineTo(cx + vwW, tcy + (vwH * 0.55));
-    ctx.lineTo(vanX, vanY + 4);
-    ctx.lineTo(cx - vwW, tcy + (vwH * 0.55));
-    ctx.closePath();
-    ctx.fill();
-
-    // Tunnel arch outline
-    ctx.strokeStyle = tn.color + 'aa';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(0, tcy - H * 0.12);
-    ctx.lineTo(cx - vwW, tcy - (vwH * 0.55));
-    ctx.lineTo(cx - vwW, tcy + (vwH * 0.55));
-    ctx.lineTo(0, tcy + H * 0.12);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx - vwW, tcy - (vwH * 0.55));
-    ctx.lineTo(vanX, vanY);
-    ctx.lineTo(cx - vwW, tcy + (vwH * 0.55));
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Support bolts along wall
-    for (let bx = W * 0.08; bx < W; bx += W * 0.14) {
-      const progress = bx / W;
-      const topY = tcy - H * 0.12 + progress * (H * 0.12 - vwH * 0.55);
-      ctx.beginPath();
-      ctx.arc(bx, topY, 2, 0, Math.PI * 2);
-      ctx.fillStyle = '#8a7a60';
-      ctx.fill();
-      ctx.strokeStyle = '#8a7a6080';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(bx, topY);
-      ctx.lineTo(bx, tcy - H * 0.12 + 8);
-      ctx.stroke();
+  // Rock texture on outer walls
+  for(let rx2=0;rx2<W;rx2+=6){
+    for(let ry=0;ry<H;ry+=6){
+      const inTunnel=(rx2>=lx&&rx2<=rx&&ry>=ty&&ry<=by);
+      if(!inTunnel){
+        const noise=Math.sin(rx2*.13+t*.001)*Math.cos(ry*.17)*0.5+0.5;
+        ctx.fillStyle=`rgba(${Math.round(15+noise*20)},${Math.round(10+noise*14)},${Math.round(5+noise*8)},0.85)`;
+        ctx.fillRect(rx2,ry,6,6);
+      }
     }
-
-    // Cable conduits along wall
-    ctx.strokeStyle = tn.color + '40';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, tcy - H * 0.09);
-    ctx.lineTo(W, tcy - H * 0.09);
-    ctx.stroke();
-
-    // Moving ore carts / LHDs
-    const lhds = SITES[activeSite].assets.filter(a => a.type === 'loader' || a.type === 'haul-truck');
-    lhds.slice(0, 2).forEach((a, i) => {
-      const speed = a.status === 'active' ? 0.5 : 0.1;
-      const xpos = ((t * speed * (i % 2 === 0 ? 1 : -1) + i * 300) % (W + 100)) - 50;
-      const scale = 0.4 + (xpos / W) * 0.6;
-      const veh_y = tcy + H * 0.06;
-      const veh_w = 32 * scale, veh_h = 18 * scale;
-      const col = a.status === 'alert' ? '#ef4444' : '#22c55e';
-      ctx.fillStyle = col + 'cc';
-      ctx.shadowBlur = 12; ctx.shadowColor = col;
-      ctx.fillRect(xpos - veh_w / 2, veh_y - veh_h, veh_w, veh_h);
-      ctx.shadowBlur = 0;
-      // Headlights
-      const hlx = i % 2 === 0 ? xpos + veh_w / 2 : xpos - veh_w / 2;
-      const grad = ctx.createRadialGradient(hlx, veh_y - veh_h / 2, 0, hlx + (i%2===0?40:-40), veh_y-veh_h/2, 80);
-      grad.addColorStop(0, 'rgba(255,250,200,0.4)');
-      grad.addColorStop(1, 'rgba(255,250,200,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.ellipse(hlx, veh_y - veh_h / 2, 80, 20, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Label
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = `${Math.round(7 * scale)}px Share Tech Mono, monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText(a.id, xpos, veh_y - veh_h - 4);
-    });
-
-    // Workers walking
-    SITES[activeSite].assets.filter(a => a.type === 'worker').slice(0, 2).forEach((w, i) => {
-      const xw = ((t * 0.2 + i * 180 + ti * 60) % (W + 60)) - 30;
-      const yw = tcy + H * 0.05;
-      ctx.beginPath();
-      ctx.arc(xw, yw - 6, 5, 0, Math.PI * 2);
-      const wc = w.status === 'alert' ? '#ef4444' : '#4da3ff';
-      ctx.fillStyle = wc;
-      ctx.shadowBlur = 8; ctx.shadowColor = wc;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      // Hard hat
-      ctx.beginPath(); ctx.arc(xw, yw - 9, 4, Math.PI, 0); ctx.fillStyle = '#f97316'; ctx.fill();
-    });
-
-    // Drill rig
-    const dr = SITES[activeSite].assets.find(a => a.type === 'drill');
-    if (dr) {
-      const drx = cx + vwW * 0.6;
-      const dry = tcy;
-      ctx.fillStyle = '#f97316cc';
-      ctx.fillRect(drx - 8, dry - 20, 16, 20);
-      ctx.strokeStyle = '#f97316';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(drx, dry - 20);
-      ctx.lineTo(drx, dry - 20 - (Math.sin(t * 0.08) * 5 + 15));
-      ctx.stroke();
-      // Drill vibration
-      ctx.fillStyle = 'rgba(249,115,22,0.15)';
-      ctx.beginPath();
-      ctx.arc(drx, dry, 15 + Math.sin(t * 0.2) * 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Tunnel label
-    ctx.fillStyle = tn.color;
-    ctx.font = 'bold 9px Montserrat, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('▶ ' + tn.label, 8, tcy - H * 0.12 + 14);
-  });
-
-  // Ventilation duct along top
-  ctx.strokeStyle = 'rgba(14,174,184,0.3)';
-  ctx.lineWidth = 3;
-  ctx.setLineDash([8, 4]);
-  ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(W, 20); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(14,174,184,0.7)';
-  ctx.font = '8px Share Tech Mono, monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('VENTILATION — AIRFLOW OK  ' + Math.round(3.2 + Math.sin(t*0.02)*0.3) + 'm/s', 8, 15);
-
-  // Sensor network dots
-  for (let sx = 60; sx < W - 40; sx += 90) {
-    const pulse = Math.sin(t * 0.05 + sx * 0.01);
-    ctx.beginPath();
-    ctx.arc(sx, 35, 3 + pulse, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(14,174,184,${0.4 + pulse * 0.3})`;
-    ctx.fill();
   }
 
-  // Title
-  ctx.fillStyle = 'rgba(212,160,23,0.9)';
-  ctx.font = 'bold 11px Montserrat, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(`UNDERGROUND TUNNEL — ${SITES[activeSite].name}`, W / 2, H - 22);
-  ctx.fillStyle = 'rgba(148,163,184,0.6)';
-  ctx.font = '9px Share Tech Mono, monospace';
-  ctx.fillText(`3 Active Levels  |  Drill depth: ${Math.round(320 + Math.sin(t*0.005)*8)}m  |  Air quality: GOOD`, W / 2, H - 10);
+  // ── TUNNEL INTERIOR gradient — dark at vanishing ──
+  // Floor perspective
+  const floorG=ctx.createLinearGradient(vpX,vpY,vpX,by);
+  floorG.addColorStop(0,'#0d0905'); floorG.addColorStop(0.6,'#1c1510'); floorG.addColorStop(1,'#2a2018');
+  ctx.fillStyle=floorG;
+  ctx.beginPath(); ctx.moveTo(lx,by); ctx.lineTo(rx,by); ctx.lineTo(vpX+6,vpY); ctx.lineTo(vpX-6,vpY); ctx.closePath(); ctx.fill();
 
-  drawKpiOverlay(ctx, W, H);
+  // Ceiling
+  const ceilG=ctx.createLinearGradient(vpX,vpY,vpX,ty);
+  ceilG.addColorStop(0,'#0a0905'); ceilG.addColorStop(1,'#211a12');
+  ctx.fillStyle=ceilG;
+  ctx.beginPath(); ctx.moveTo(lx,ty); ctx.lineTo(rx,ty); ctx.lineTo(vpX+6,vpY); ctx.lineTo(vpX-6,vpY); ctx.closePath(); ctx.fill();
+
+  // Left wall
+  const lwG=ctx.createLinearGradient(lx,vpY,vpX,vpY);
+  lwG.addColorStop(0,'#2a2015'); lwG.addColorStop(1,'#0a0806');
+  ctx.fillStyle=lwG;
+  ctx.beginPath(); ctx.moveTo(lx,ty); ctx.lineTo(vpX-6,vpY); ctx.lineTo(vpX-6,vpY); ctx.lineTo(lx,by); ctx.closePath(); ctx.fill();
+
+  // Right wall
+  const rwG=ctx.createLinearGradient(rx,vpY,vpX,vpY);
+  rwG.addColorStop(0,'#252015'); rwG.addColorStop(1,'#0a0806');
+  ctx.fillStyle=rwG;
+  ctx.beginPath(); ctx.moveTo(rx,ty); ctx.lineTo(vpX+6,vpY); ctx.lineTo(vpX+6,vpY); ctx.lineTo(rx,by); ctx.closePath(); ctx.fill();
+
+  // ── ARCH (horseshoe arch at tunnel mouth) ──
+  ctx.strokeStyle='#5a4a30'; ctx.lineWidth=12;
+  ctx.beginPath(); ctx.moveTo(lx,by); ctx.lineTo(lx,ty+halfH*.4);
+  ctx.arcTo(lx,ty,vpX,ty,halfH*.4); ctx.arcTo(rx,ty,rx,ty+halfH*.4,halfH*.4); ctx.lineTo(rx,by); ctx.stroke();
+  ctx.strokeStyle='#3a2e1a'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(lx+6,by); ctx.lineTo(lx+6,ty+halfH*.4);
+  ctx.arcTo(lx+6,ty+6,vpX,ty+6,halfH*.35); ctx.arcTo(rx-6,ty+6,rx-6,ty+halfH*.4,halfH*.35); ctx.lineTo(rx-6,by); ctx.stroke();
+
+  // ── ROCK CRACK LINES on walls for realism ──
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1;
+  [[lx+10,ty+30,lx+45,ty+80],[lx+20,ty+120,lx+60,ty+100],[rx-15,ty+50,rx-55,ty+90],[rx-25,ty+140,rx-70,ty+110]].forEach(([ax,ay,bx2,by2])=>{
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax+12,ay+20); ctx.lineTo(bx2,by2); ctx.stroke();
+  });
+
+  // ── TUNNEL LIGHTS (string of cage lights overhead) ──
+  const numLights=8;
+  for(let li=0;li<numLights;li++){
+    const p=(li+1)/(numLights+1);
+    const lightX=vpX+(lx-vpX)*(1-p)*.7;
+    const lightY=ty+(vpY-ty)*p*.8+5;
+    const lightX2=vpX+(rx-vpX)*(1-p)*.7;
+    // Fog cone from lights
+    const fogA=0.04+Math.abs(Math.sin(t*.03+li))*.03;
+    const lightG=ctx.createRadialGradient(lightX,lightY,0,lightX,lightY,30*(1-p*.5));
+    lightG.addColorStop(0,`rgba(255,240,180,${fogA+.06})`); lightG.addColorStop(1,'rgba(255,240,180,0)');
+    ctx.fillStyle=lightG; ctx.beginPath(); ctx.arc(lightX,lightY,30*(1-p*.5),0,Math.PI*2); ctx.fill();
+    const lightG2=ctx.createRadialGradient(lightX2,lightY,0,lightX2,lightY,30*(1-p*.5));
+    lightG2.addColorStop(0,`rgba(255,240,180,${fogA+.06})`); lightG2.addColorStop(1,'rgba(255,240,180,0)');
+    ctx.fillStyle=lightG2; ctx.beginPath(); ctx.arc(lightX2,lightY,30*(1-p*.5),0,Math.PI*2); ctx.fill();
+    // Bulb
+    ctx.beginPath(); ctx.arc(lightX,lightY,3*(1-p*.4),0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,250,200,0.9)`; ctx.fill();
+    ctx.beginPath(); ctx.arc(lightX2,lightY,3*(1-p*.4),0,Math.PI*2); ctx.fill();
+    // Wire
+    ctx.strokeStyle='rgba(80,70,50,0.6)'; ctx.lineWidth=1;
+    if(li>0){
+      const pp=(li)/(numLights+1);
+      const plX=vpX+(lx-vpX)*(1-pp)*.7; const plY=ty+(vpY-ty)*pp*.8+5;
+      const plX2=vpX+(rx-vpX)*(1-pp)*.7;
+      ctx.beginPath(); ctx.moveTo(plX,plY); ctx.lineTo(lightX,lightY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(plX2,plY); ctx.lineTo(lightX2,lightY); ctx.stroke();
+    }
+  }
+
+  // ── RAIL TRACKS ──
+  const railY1=vpY+10, railY2=by-8;
+  const railLX1=vpX-6, railRX1=vpX+6, railLX2=lx+18, railRX2=rx-18;
+  ctx.strokeStyle='#6a5a40'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(railLX1,railY1); ctx.lineTo(railLX2,railY2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(railRX1,railY1); ctx.lineTo(railRX2,railY2); ctx.stroke();
+  // Rail ties
+  for(let rp=0;rp<1;rp+=0.08){
+    const rx3=railLX1+(railLX2-railLX1)*rp; const ry3=railY1+(railY2-railY1)*rp;
+    const rr=railRX1+(railRX2-railRX1)*rp;
+    ctx.strokeStyle='#4a3a28'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(rx3,ry3); ctx.lineTo(rr,ry3); ctx.stroke();
+  }
+
+  // ── VENTILATION PIPE ──
+  ctx.strokeStyle='rgba(14,174,184,.35)'; ctx.lineWidth=8;
+  ctx.beginPath(); ctx.moveTo(vpX-halfW*.5,ty+18); ctx.lineTo(lx+10,ty+18); ctx.stroke();
+  ctx.strokeStyle='rgba(14,174,184,.2)'; ctx.lineWidth=10;
+  ctx.beginPath(); ctx.moveTo(vpX-halfW*.5,ty+18); ctx.lineTo(lx+10,ty+18); ctx.stroke();
+  // Airflow arrows
+  for(let ap=0;ap<1;ap+=0.2){
+    const arrX=lx+10+(vpX-halfW*.5-lx-10)*ap;
+    const aOff=((t*0.04+ap)%0.2-0.1)*30;
+    ctx.fillStyle='rgba(14,174,184,0.6)'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('→',arrX+aOff,ty+22);
+  }
+  ctx.fillStyle='rgba(14,174,184,.7)'; ctx.font='7px Share Tech Mono,monospace'; ctx.textAlign='left';
+  ctx.fillText('VENT — '+Math.round(3.2+Math.sin(t*.02)*.3)+'m/s OK',lx+14,ty+14);
+
+  // ── LHD / ORE CART moving ──
+  const lhds=SITES[activeSite].assets.filter(a=>a.type==='loader'||a.type==='compressor'||a.type==='aux-truck');
+  lhds.slice(0,2).forEach((a,i)=>{
+    const prog=((t*(i%2===0?.007:.006)+i*.5)%1);
+    const vehX=vpX+(lx-vpX)*prog*(i%2===0?1:-1)+vpX*(i%2===0?0:0);
+    // Actually animate left to right or right to left
+    const realX=i%2===0?lx+(rx-lx)*(1-prog):rx-(rx-lx)*(1-prog);
+    const realY=by-20+(vpY-by+20)*prog;
+    const sc=0.3+prog*.7;
+    const col=a.status==='alert'?'#ef4444':'#22c55e';
+    // LHD shadow
+    ctx.fillStyle='rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(realX,realY+12*sc,22*sc,5*sc,0,0,Math.PI*2); ctx.fill();
+    // LHD body
+    ctx.fillStyle='#e8a020dd'; ctx.shadowBlur=8*sc; ctx.shadowColor=col;
+    ctx.fillRect(realX-20*sc,realY-25*sc,40*sc,18*sc);
+    ctx.shadowBlur=0;
+    // Cab
+    ctx.fillStyle='#222'; ctx.fillRect(realX-8*sc,realY-35*sc,16*sc,12*sc);
+    // Headlights
+    const hldir=i%2===0?-1:1;
+    const hlG=ctx.createRadialGradient(realX+hldir*20*sc,realY-18*sc,0,realX+hldir*80*sc,realY-18*sc,60*sc);
+    hlG.addColorStop(0,'rgba(255,250,210,.35)'); hlG.addColorStop(1,'rgba(255,250,210,0)');
+    ctx.fillStyle=hlG; ctx.beginPath(); ctx.ellipse(realX+hldir*20*sc,realY-18*sc,60*sc,12*sc,0,0,Math.PI*2); ctx.fill();
+    // Bucket/shovel front
+    ctx.fillStyle='#c07010dd';
+    ctx.fillRect(realX+(i%2===0?-26:-14)*sc,realY-20*sc,12*sc,12*sc);
+    ctx.fillStyle='#e2e8f0'; ctx.font=`${Math.round(7*sc)}px Share Tech Mono,monospace`; ctx.textAlign='center';
+    ctx.fillText('🏗️ '+a.id,realX,realY-38*sc);
+  });
+
+  // ── SENSOR / IoT node on wall ──
+  for(let sp=0.15;sp<0.9;sp+=0.2){
+    const sx2=lx+(vpX-lx)*sp+10; const sy2=ty+(by-ty)*sp*.4+H*.12;
+    const pulse=Math.abs(Math.sin(t*.06+sp*10));
+    ctx.beginPath(); ctx.arc(sx2,sy2,3+pulse*2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(14,174,184,${0.5+pulse*.4})`; ctx.shadowBlur=8; ctx.shadowColor='#0eaeb8';
+    ctx.fill(); ctx.shadowBlur=0;
+  }
+
+  // ── ATMOSPHERE / DUST haze vanishing ──
+  const fogG=ctx.createRadialGradient(vpX,vpY,10,vpX,vpY,halfW*.7);
+  fogG.addColorStop(0,'rgba(200,180,140,0.12)'); fogG.addColorStop(1,'rgba(200,180,140,0)');
+  ctx.fillStyle=fogG; ctx.beginPath(); ctx.arc(vpX,vpY,halfW*.7,0,Math.PI*2); ctx.fill();
+
+  // ── TITLE ──
+  ctx.fillStyle='rgba(212,160,23,.9)'; ctx.font='bold 11px Montserrat,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(`UNDERGROUND TUNNEL — ${SITES[activeSite].name}  |  Depth: ~${Math.round(320+Math.sin(t*.005)*8)}m  |  Air: GOOD`,W/2,H-10);
+  drawKpiOverlay(ctx,W,H);
 }
 
 // ─── KPI overlay on canvas ───
@@ -1211,12 +1434,13 @@ function renderList() {
   document.getElementById('aCount').textContent = items.length;
   list.innerHTML = '';
   items.forEach(a => {
-    const dc = a.status === 'alert' ? 'd-r' : a.type === 'worker' ? 'd-b' : a.status === 'active' ? 'd-g' : 'd-y';
+    const dc = a.status === 'alert' ? 'd-r' : a.status === 'active' ? 'd-g' : 'd-y';
     const bc = a.bat < 20 ? 'style="color:var(--red)"' : a.bat < 50 ? 'style="color:var(--gold)"' : '';
+    const emoji = TYPE_ICON[a.type] || '📦';
     const div = document.createElement('div');
     div.className = 'a-item' + (a.status === 'alert' ? ' al' : '');
     div.innerHTML = `
-      <div class="a-dot ${dc}"></div>
+      <div style="font-size:1.3rem;flex-shrink:0">${emoji}</div>
       <div class="a-info">
         <div class="a-name">${a.name}</div>
         <div class="a-sub">${a.id} · ${a.type}</div>
@@ -1231,10 +1455,10 @@ function renderList() {
   });
 
   // Status bar
-  const ac = assets.filter(a => a.type !== 'worker' && a.status === 'active').length;
-  const ic = assets.filter(a => a.type !== 'worker' && a.status === 'idle').length;
+  const ac = assets.filter(a => a.status === 'active').length;
+  const ic = assets.filter(a => a.status === 'idle').length;
   const alc = assets.filter(a => a.status === 'alert').length;
-  const wc = assets.filter(a => a.type === 'worker').length;
+  const wc = (SITES[activeSite].people || []).length;
   document.getElementById('sb1').textContent = ac + ' Active';
   document.getElementById('sb2').textContent = ic + ' Idle';
   document.getElementById('sb3').textContent = alc + ' Alerts';
@@ -1260,47 +1484,41 @@ function renderRp() {
 
 function getRpHTML() {
   const assets = SITES[activeSite].assets;
+  const people = SITES[activeSite].people || [];
   const alive = assets.filter(a => a.status === 'active').length;
   const idle  = assets.filter(a => a.status === 'idle').length;
   const alc   = assets.filter(a => a.status === 'alert').length;
-  const wc    = assets.filter(a => a.type === 'worker').length;
+  const wc    = people.length;
   const siteType = SITES[activeSite].type;
 
   if (activeMode === 'locate') return `
     <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">travel_explore</span>Fleet Overview · ${SITES[activeSite].name}</div>
+      <div class="rp-sec-title"><span class="ms">construction</span>Aux Equipment · ${SITES[activeSite].name}</div>
       <div class="kpi-grid">
-        <div class="kpi-card c-good"><div class="kpi-val kv-g">${alive}</div><div class="kpi-lbl">Active</div><div class="kpi-trend t-up">↑ on target</div></div>
+        <div class="kpi-card c-good"><div class="kpi-val kv-g">${alive}</div><div class="kpi-lbl">Active</div></div>
         <div class="kpi-card"><div class="kpi-val">${idle}</div><div class="kpi-lbl">Idle</div></div>
         <div class="kpi-card c-alert"><div class="kpi-val kv-r">${alc}</div><div class="kpi-lbl">Alerts</div></div>
-        <div class="kpi-card c-blue"><div class="kpi-val kv-b">${wc}</div><div class="kpi-lbl">Workers</div></div>
+        <div class="kpi-card c-blue"><div class="kpi-val kv-b">${assets.length}</div><div class="kpi-lbl">Total Units</div></div>
       </div>
     </div>
     <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">map</span>Zone Distribution</div>
-      ${['Blast Zone','Workshop','Base Camp','Fuel Station'].map(z => {
-        const n = Math.round(Math.random() * 3) + 1;
-        const p = Math.round(n / assets.length * 100);
-        return `<div class="eff-item">
-          <div class="eff-hdr"><span class="eff-nm">${z}</span><span class="eff-pct">${n} assets</span></div>
-          <div class="eff-track"><div class="eff-fill" style="background:var(--blue2)" data-w="${p}"></div></div>
+      <div class="rp-sec-title"><span class="ms">category</span>Equipment Types</div>
+      ${[...new Set(assets.map(a=>a.type))].map(type => {
+        const count = assets.filter(a=>a.type===type).length;
+        const icon = TYPE_ICON[type]||'📦';
+        const ok = assets.filter(a=>a.type===type&&a.status==='active').length;
+        return `<div class="a-item" style="padding:5px 8px">
+          <div style="font-size:1.2rem">${icon}</div>
+          <div class="a-info"><div class="a-name">${type}</div><div class="a-sub">${count} unit${count>1?'s':''}</div></div>
+          <div style="font-size:.65rem;color:var(--green)">${ok} active</div>
         </div>`;
       }).join('')}
     </div>
     <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">person_pin</span>Workers On-Site</div>
-      ${assets.filter(a => a.type === 'worker').map(w => `
-        <div class="w-row">
-          <div class="w-av">${w.name.split(' ').map(s => s[0]).join('')}</div>
-          <div style="flex:1"><div class="w-nm">${w.name}</div><div class="w-zn">${w.id} · ${w.bat}% bat</div></div>
-          <div class="w-st ${w.status === 'alert' ? 'ws-al' : 'ws-ok'}">${w.status === 'alert' ? '⚠ ALERT' : 'ON SHIFT'}</div>
-        </div>`).join('')}
-    </div>
-    <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">router</span>Network Coverage</div>
+      <div class="rp-sec-title"><span class="ms">router</span>LoRaWAN Coverage</div>
       <div class="kpi-grid">
-        <div class="kpi-card c-good"><div class="kpi-val kv-t">98%</div><div class="kpi-lbl">LoRaWAN</div></div>
-        <div class="kpi-card c-good"><div class="kpi-val kv-g">${assets.length}</div><div class="kpi-lbl">Devices Online</div></div>
+        <div class="kpi-card c-good"><div class="kpi-val kv-t">98%</div><div class="kpi-lbl">Coverage</div></div>
+        <div class="kpi-card c-good"><div class="kpi-val kv-g">${assets.length}</div><div class="kpi-lbl">Tags Online</div></div>
       </div>
     </div>`;
 
@@ -1337,55 +1555,48 @@ function getRpHTML() {
       </div>
     </div>`;
 
+  const palc = people.filter(p => p.status === 'alert').length;
+  const pwarn = people.filter(p => p.status === 'warning').length;
   if (activeMode === 'protect') return `
     <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">shield</span>Safety Dashboard</div>
+      <div class="rp-sec-title"><span class="ms">shield</span>People Safety — ${SITES[activeSite].name}</div>
       <div class="kpi-grid">
-        <div class="kpi-card c-good"><div class="kpi-val kv-g">${wc - alc > 0 ? wc - alc : wc}</div><div class="kpi-lbl">Workers Safe</div></div>
-        <div class="kpi-card c-alert"><div class="kpi-val kv-r">${alc}</div><div class="kpi-lbl">Active Alerts</div></div>
-        <div class="kpi-card c-good"><div class="kpi-val kv-g">0</div><div class="kpi-lbl">SOS Events</div></div>
+        <div class="kpi-card c-good"><div class="kpi-val kv-g">${people.filter(p=>p.status==='ok').length}</div><div class="kpi-lbl">Safe</div></div>
+        <div class="kpi-card" style="border-color:rgba(240,192,64,.3)"><div class="kpi-val" style="color:var(--gold2)">${pwarn}</div><div class="kpi-lbl">Warnings</div></div>
+        <div class="kpi-card c-alert"><div class="kpi-val kv-r">${palc}</div><div class="kpi-lbl">Alerts</div></div>
         <div class="kpi-card c-gold"><div class="kpi-val">12d</div><div class="kpi-lbl">Incident-Free</div></div>
       </div>
     </div>
     <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">notifications_active</span>Active Alerts</div>
-      ${assets.filter(a => a.alert).map(a => `
+      <div class="rp-sec-title"><span class="ms">notifications_active</span>Active Incidents</div>
+      ${people.filter(p => p.alert).map(p => `
         <div class="al-row">
-          <span class="al-icon" style="color:var(--red)">warning</span>
+          <span style="font-size:1.3rem">${p.gender==='f'?'👷‍♀️':'👷'}</span>
           <div class="al-txt">
-            <div class="al-title">${a.name} — ${a.alert}</div>
-            <div class="al-meta">${a.id} · ${a.type}</div>
+            <div class="al-title" style="color:${p.status==='alert'?'var(--red)':'var(--gold2)'}">${p.name} — ${p.alert}</div>
+            <div class="al-meta">${p.zone} · ${p.role}</div>
           </div>
           <div class="al-age">now</div>
         </div>`).join('')}
-      <div class="al-row">
-        <span class="al-icon" style="color:var(--gold)">fence</span>
-        <div class="al-txt"><div class="al-title">Geofence boundary approach detected</div><div class="al-meta">Blast Zone perimeter</div></div>
-        <div class="al-age">3m</div>
-      </div>
-      <div class="al-row">
-        <span class="al-icon" style="color:var(--blue2)">power</span>
-        <div class="al-txt"><div class="al-title">Shift change reminder — 30 min</div><div class="al-meta">All personnel</div></div>
-        <div class="al-age">8m</div>
-      </div>
+      <div class="al-row"><span class="al-icon" style="color:var(--gold)">fence</span>
+        <div class="al-txt"><div class="al-title">Geofence breach — Blast Zone</div><div class="al-meta">Restricted area</div></div>
+        <div class="al-age">2m</div></div>
     </div>
     <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">my_location</span>Worker Positions (Satellite)</div>
-      ${assets.filter(a => a.type === 'worker').map(w => `
+      <div class="rp-sec-title"><span class="ms">group</span>All Personnel</div>
+      ${people.map(p => `
         <div class="w-row">
-          <div class="w-av">${w.name.split(' ').map(s=>s[0]).join('')}</div>
-          <div style="flex:1"><div class="w-nm">${w.name}</div>
-          <div class="w-zn">${w.lat.toFixed(4)}, ${w.lng.toFixed(4)}</div></div>
-          <div class="w-st ${w.status==='alert'?'ws-al':'ws-ok'}">${w.status==='alert'?'⚠ ALERT':'OK'}</div>
+          <div style="font-size:1.4rem">${p.gender==='f'?'👷‍♀️':'👷'}</div>
+          <div style="flex:1">
+            <div class="w-nm">${p.name} <span style="color:var(--muted);font-size:.6rem">${p.role}</span></div>
+            <div class="w-zn">${p.zone} · 🔋${p.bat}%</div>
+          </div>
+          <div class="w-st ${p.status==='alert'?'ws-al':p.status==='warning'?'':'ws-ok'}" style="${p.status==='warning'?'background:rgba(240,192,64,.15);color:var(--gold2)':''}"><span>${p.status==='alert'?'🚨 FALL':p.status==='warning'?'⚠ WARN':'✓ OK'}</span></div>
         </div>`).join('')}
     </div>
     <div class="rp-sec">
-      <div class="rp-sec-title"><span class="ms">emergency</span>Emergency Protocol</div>
-      <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:9px;padding:10px;text-align:center">
-        <div style="font-family:var(--head);font-weight:900;font-size:1rem;color:var(--green);margin-bottom:4px">ALL CLEAR</div>
-        <div style="font-size:.65rem;color:var(--muted)">Blast zone cleared · Muster at Base Camp</div>
-      </div>
-      <button onclick="triggerSOS()" style="margin-top:8px;width:100%;padding:9px;border-radius:8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);font-weight:800;cursor:pointer;font-family:var(--sans);font-size:.75rem;display:flex;align-items:center;justify-content:center;gap:6px">
+      <div class="rp-sec-title"><span class="ms">emergency</span>Emergency</div>
+      <button onclick="triggerSOS()" style="width:100%;padding:9px;border-radius:8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);font-weight:800;cursor:pointer;font-family:var(--sans);font-size:.75rem;display:flex;align-items:center;justify-content:center;gap:6px">
         <span class="ms">emergency</span>BROADCAST EMERGENCY ALERT
       </button>
     </div>`;
@@ -1541,7 +1752,14 @@ function startSim() {
         a.bat = Math.max(0, a.bat - Math.random() * 0.03);
       }
     });
-    if (activeMode === 'locate' || activeMode === 'protect') renderMapMarkers();
+    (SITES[activeSite].people||[]).forEach(p => {
+      if (p.status !== 'alert') {
+        p.lat += (Math.random() - 0.5) * 0.0002;
+        p.lng += (Math.random() - 0.5) * 0.0002;
+        p.bat = Math.max(0, p.bat - Math.random() * 0.05);
+      }
+    });
+    if (activeMode === 'locate') renderMapMarkers();
     renderList();
     renderRp();
     const mv = document.getElementById('mobileView');
