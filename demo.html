@@ -295,8 +295,8 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 .dc-cl{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;color:var(--muted);font-family:'Material Symbols Rounded';font-size:1rem;transition:.2s}
 .dc-cl:hover{background:rgba(255,255,255,.15);color:var(--white)}
 .dc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
-.dc-st{background:var(--navy);border:1px solid var(--border);border-radius:9px;padding:10px;text-align:center}
-.dc-sv{font-family:var(--head);font-weight:900;font-size:1.15rem;color:var(--gold)}
+.dc-st{background:var(--navy);border:1px solid var(--border);border-radius:9px;padding:10px;text-align:center;min-width:0;overflow:hidden}
+.dc-sv{font-family:var(--head);font-weight:900;font-size:1.15rem;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block}
 .dc-sv.g{color:var(--green)}.dc-sv.r{color:var(--red)}
 .dc-sl{font-size:.6rem;color:var(--muted);margin-top:3px}
 .dc-rows{margin-bottom:14px}
@@ -1675,8 +1675,8 @@ function openDC(id) {
   document.getElementById('dcName').textContent = a.name;
   document.getElementById('dcStats').innerHTML = `
     <div class="dc-st"><div class="dc-sv ${a.status==='active'?'g':a.status==='alert'?'r':''}">${a.status.toUpperCase()}</div><div class="dc-sl">Status</div></div>
-    <div class="dc-st"><div class="dc-sv">${a.spd}<span style="font-size:.7rem"> km/h</span></div><div class="dc-sl">Speed</div></div>
-    <div class="dc-st"><div class="dc-sv ${a.bat<20?'r':''}">${a.bat}%</div><div class="dc-sl">Battery</div></div>`;
+    <div class="dc-st"><div class="dc-sv">${Math.round(a.spd)}<span style="font-size:.7rem"> km/h</span></div><div class="dc-sl">Speed</div></div>
+    <div class="dc-st"><div class="dc-sv ${a.bat<20?'r':''}"> ${Math.round(a.bat)}%</div><div class="dc-sl">Battery</div></div>`;
   document.getElementById('dcRows').innerHTML = `
     <div class="dc-row"><span class="dc-rl">Asset ID</span><span class="dc-rv">${a.id}</span></div>
     <div class="dc-row"><span class="dc-rl">Type</span><span class="dc-rv">${a.type}</span></div>
